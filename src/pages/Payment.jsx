@@ -1,42 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import {
-    CreditCard, Landmark, Hash, ArrowRight, Loader2, LogOut,
-    Copy, CheckCircle, Clock, Mail, QrCode
-} from "lucide-react";
+import { CreditCard, Hash, ArrowRight, Loader2, LogOut, CheckCircle, Clock, QrCode } from "lucide-react";
 import { getUserSession, logoutUser, PAYMENT_AMOUNT } from "../utils/authUtils";
 import { PaymentRecordDB } from "../utils/db";
+import { sendPaymentNotifications } from "../utils/paymentNotificationService";
+import ThemeToggle from "../components/ThemeToggle";
+import paymentQrImg from "../assets/ethyra_upi_qr.png";
 
 const LOGO = "https://media.base44.com/images/public/6a17e06edbff878f7a211934/217e87b0f_Screenshot2026-05-25073529.png";
-
-const BANK_DETAILS = {
-    "Account Name": "ETHYRA CONSULTING SERVICES",
-    "Account Number": "44664024713",
-    "IFSC Code": "SBIN0040155",
-    "Bank Branch": "Hosur",
-};
-
-function CopyField({ label, value }) {
-    const [copied, setCopied] = useState(false);
-    const handleCopy = () => {
-        navigator.clipboard.writeText(value);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-    };
-    return (
-        <div className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
-            <div>
-                <p className="text-xs text-slate-500">{label}</p>
-                <p className="font-semibold text-slate-800 font-mono">{value}</p>
-            </div>
-            <button onClick={handleCopy}
-                className="text-xs flex items-center gap-1 text-primary hover:text-accent transition-all px-3 py-1.5 rounded-lg border border-primary/30 hover:bg-primary/5">
-                {copied ? <><CheckCircle className="w-3 h-3 text-green-500" />Copied</> : <><Copy className="w-3 h-3" />Copy</>}
-            </button>
-        </div>
-    );
-}
 
 export default function Payment() {
     const navigate = useNavigate();
@@ -53,61 +25,83 @@ export default function Payment() {
     useEffect(() => {
         if (!session?.id || !attemptId) return;
         const payments = PaymentRecordDB.findByAttempt(attemptId);
-        const pending = payments.find(p => p.status === "pending");
-        if (pending) {
-            setExistingPayment(pending);
+        const pending = payments.find((p) => p.status === "pending");
+        const success = payments.find((p) => p.status === "success");
+        if (pending || success) {
+            setExistingPayment(pending || success);
             setSubmitted(true);
         }
-    }, []);
+    }, [attemptId, session?.id]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (utr.trim().length < 6) { setError("Please enter a valid UTR reference (min 6 characters)."); return; }
+        const trimmedUtr = utr.trim();
+        if (trimmedUtr.length < 6) {
+            setError("Please enter a valid Transaction / UTR ID (min 6 characters).");
+            return;
+        }
+
         setSubmitting(true);
         setError("");
-        await new Promise(r => setTimeout(r, 1000));
-        const record = PaymentRecordDB.create({
-            userProfileId: session?.id,
-            attemptId,
-            assessmentResultId: resultId,
-            fullName: session?.fullName,
-            email: session?.email,
-            phone: session?.phone,
-            organizationName: session?.organizationName,
-            amount: PAYMENT_AMOUNT,
-            upiId: BANK_DETAILS["Account Number"],
-            utrNumber: utr.trim(),
-            status: "pending",
-            paidAt: new Date().toISOString(),
-        });
-        setExistingPayment(record);
-        setSubmitted(true);
-        setSubmitting(false);
+
+        try {
+            // 1. Create Payment Record with Pending Status in DB
+            const record = PaymentRecordDB.create({
+                userProfileId: session?.id,
+                attemptId,
+                assessmentResultId: resultId,
+                fullName: session?.fullName,
+                email: session?.email,
+                phone: session?.phone,
+                organizationName: session?.organizationName,
+                amount: PAYMENT_AMOUNT,
+                utrNumber: trimmedUtr,
+                status: "pending",
+                paidAt: new Date().toISOString(),
+            });
+
+            // 2. Trigger Immediate Email Alert (Nodemailer) & SMS Alert (+918610904242)
+            await sendPaymentNotifications({
+                fullName: session?.fullName,
+                email: session?.email,
+                organizationName: session?.organizationName,
+                phone: session?.phone,
+                utrNumber: trimmedUtr,
+            });
+
+            setExistingPayment(record);
+            setSubmitted(true);
+        } catch (err) {
+            setError("Failed to submit payment. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
-    const handleExit = () => { logoutUser(); navigate("/login"); };
-
-    const qrData = encodeURIComponent(`Account: ${BANK_DETAILS["Account Number"]}, IFSC: ${BANK_DETAILS["IFSC Code"]}, Name: ${BANK_DETAILS["Account Name"]}, Amount: ${PAYMENT_AMOUNT}`);
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=8&bgcolor=ffffff&color=0a1628&data=${qrData}`;
-
-    const copyAll = () => {
-        const text = Object.entries(BANK_DETAILS).map(([k, v]) => `${k}: ${v}`).join("\n") + `\nAmount: ₹${PAYMENT_AMOUNT}`;
-        navigator.clipboard.writeText(text);
+    const handleExit = () => {
+        logoutUser();
+        navigate("/login");
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50/30 dark:bg-gradient-to-br dark:from-[#0a1628] dark:via-[#0f2347] dark:to-[#1e3a8a] text-slate-800 dark:text-white transition-colors duration-300">
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-blue-100 shadow-sm">
+            <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#0a1628]/90 backdrop-blur-md border-b border-blue-100 dark:border-blue-900/40 shadow-sm transition-colors">
                 <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
                     <img src={LOGO} alt="ETHYRA" className="h-8" />
                     <div className="text-center">
-                        <p className="text-sm font-semibold text-slate-700">Unlock Full Report</p>
-                        <p className="text-xs text-slate-500">Bank Transfer · ₹{PAYMENT_AMOUNT}</p>
+                        <p className="text-sm font-bold text-slate-800 dark:text-white">Payment Portal</p>
+                        <p className="text-xs text-slate-500 dark:text-blue-200">UPI Instant Payment · ₹{PAYMENT_AMOUNT}</p>
                     </div>
-                    <button onClick={handleExit} className="text-red-400 hover:text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg text-xs flex items-center gap-1 transition-all">
-                        <LogOut className="w-3 h-3" />Exit
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <ThemeToggle />
+                        <button
+                            onClick={handleExit}
+                            className="text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 px-2.5 py-1 rounded-lg text-xs flex items-center gap-1 font-semibold transition-all"
+                        >
+                            <LogOut className="w-3.5 h-3.5" />Exit
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -115,127 +109,163 @@ export default function Payment() {
                 {!submitted ? (
                     <>
                         {/* Hero Card */}
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                            className="bg-gradient-to-r from-primary to-blue-700 rounded-3xl p-8 shadow-xl text-white">
-                            <div className="flex items-start gap-4">
-                                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
-                                    <CreditCard className="w-7 h-7" />
-                                </div>
-                                <div className="flex-1">
-                                    <h2 className="text-2xl font-bold mb-1">Unlock Your Full Report</h2>
-                                    <p className="text-blue-200 text-sm">Pay ₹{PAYMENT_AMOUNT} · Verified manually by our team</p>
-                                    <div className="mt-4 space-y-1">
-                                        {["Complete category breakdown", "Detailed recommendations", "Risk classification report", "Full PDF report emailed to you"].map(item => (
-                                            <div key={item} className="flex items-center gap-2 text-sm text-blue-100">
-                                                <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />{item}
-                                            </div>
-                                        ))}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-gradient-to-r from-primary via-blue-700 to-indigo-800 rounded-3xl p-7 shadow-xl text-white border border-blue-400/20"
+                        >
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-13 h-13 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
+                                        <CreditCard className="w-6 h-6 text-white" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-bold mb-1 text-white">Unlock Executive PDF Report</h2>
+                                        <p className="text-blue-100 text-sm">Pay ₹{PAYMENT_AMOUNT} via UPI to get your verified 100% readiness report</p>
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            {["Dynamic Charts", "Pillar Breakdown", "Mandatory Audit", "Direct PDF Email"].map((item) => (
+                                                <span key={item} className="inline-flex items-center gap-1 text-xs bg-white/20 backdrop-blur-sm text-white px-2.5 py-0.5 rounded-full font-medium">
+                                                    <CheckCircle className="w-3 h-3 text-cyan-300" />{item}
+                                                </span>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="bg-white/15 border border-white/30 rounded-xl px-4 py-3 text-center flex-shrink-0">
-                                    <p className="text-blue-200 text-xs mb-1">One-time unlock fee</p>
-                                    <p className="text-3xl font-black">₹{PAYMENT_AMOUNT}</p>
+                                <div className="bg-white/15 backdrop-blur-md border border-white/30 rounded-2xl px-5 py-3 text-center sm:text-right flex-shrink-0">
+                                    <p className="text-blue-200 text-xs mb-0.5">Amount Payable</p>
+                                    <p className="text-3xl font-black text-white">₹{PAYMENT_AMOUNT}</p>
                                 </div>
                             </div>
                         </motion.div>
 
-                        {/* Bank Details */}
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                            className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm">
+                        {/* Clean UPI QR Scanner Container */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="bg-white dark:bg-[#0f2342]/90 border border-blue-100 dark:border-blue-500/30 rounded-3xl p-7 shadow-lg text-center flex flex-col items-center"
+                        >
                             <div className="flex items-center gap-2 mb-4">
-                                <Landmark className="w-5 h-5 text-primary" />
-                                <h3 className="font-bold text-slate-800">Bank Transfer Details</h3>
+                                <QrCode className="w-5 h-5 text-primary dark:text-cyan-400" />
+                                <h3 className="font-bold text-lg text-slate-800 dark:text-white">UPI Payment QR Scanner</h3>
                             </div>
-                            {Object.entries(BANK_DETAILS).map(([k, v]) => (
-                                <CopyField key={k} label={k} value={v} />
-                            ))}
-                            <button onClick={copyAll}
-                                className="mt-4 w-full border-2 border-dashed border-primary/40 text-primary hover:bg-primary/5 rounded-xl py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-all">
-                                <Copy className="w-4 h-4" />Copy all bank details
-                            </button>
+
+                            {/* Clean Container displaying the newly provided QR code image */}
+                            <div className="bg-gradient-to-b from-blue-50 to-white dark:from-blue-950/50 dark:to-[#0f2342] p-4 rounded-3xl border-2 border-primary/30 dark:border-cyan-400/40 shadow-md mb-3">
+                                <img
+                                    src={paymentQrImg}
+                                    alt="UPI QR Scanner Code"
+                                    className="w-56 h-56 object-contain rounded-2xl mx-auto shadow-sm"
+                                />
+                            </div>
+
+                            {/* Required Subtext */}
+                            <p className="text-sm font-bold text-primary dark:text-cyan-300 mt-1 tracking-wide">
+                                Scan with any UPI app to pay
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-blue-200 mt-1">
+                                Google Pay, PhonePe, Paytm, BHIM, or any Banking UPI app
+                            </p>
                         </motion.div>
 
-                        {/* QR Code */}
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-                            className="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm flex flex-col items-center">
-                            <div className="flex items-center gap-2 mb-4 self-start">
-                                <QrCode className="w-5 h-5 text-primary" />
-                                <h3 className="font-bold text-slate-800">Scan to Pay</h3>
+                        {/* Transaction ID Submission Form */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="bg-white dark:bg-[#0f2342]/90 border-2 border-primary/40 dark:border-cyan-400/50 rounded-3xl p-7 shadow-lg"
+                        >
+                            <div className="flex items-center gap-2.5 mb-4">
+                                <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-cyan-400/20 flex items-center justify-center">
+                                    <Hash className="w-5 h-5 text-primary dark:text-cyan-400" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-800 dark:text-white">Transaction Reference Verification</h3>
+                                    <p className="text-xs text-slate-500 dark:text-blue-200">Enter your 12-digit UPI UTR / Transaction ID below</p>
+                                </div>
                             </div>
-                            <div className="bg-white border-2 border-blue-200 rounded-2xl p-3">
-                                <img src={qrUrl} alt="QR Code" className="w-40 h-40" />
-                            </div>
-                            <p className="text-xs text-slate-400 mt-3">Scan for bank details reference</p>
-                        </motion.div>
 
-                        {/* UTR Form */}
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                            className="bg-white border-2 border-primary/30 rounded-2xl p-6 shadow-sm">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Hash className="w-5 h-5 text-primary" />
-                                <h3 className="font-bold text-slate-800">Submit Transaction Reference ID</h3>
-                            </div>
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Transaction / UTR Reference ID *</label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1.5">
+                                        Transaction / UTR ID *
+                                    </label>
                                     <input
                                         type="text"
                                         value={utr}
-                                        onChange={e => setUtr(e.target.value)}
-                                        placeholder="e.g. 45671234567890 / UTR number"
-                                        className="w-full border border-blue-200 rounded-xl px-4 py-3 font-mono text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+                                        onChange={(e) => setUtr(e.target.value)}
+                                        placeholder="e.g. 428790123456 / UTR reference number"
+                                        className="w-full bg-slate-50 dark:bg-[#0a1628] border border-blue-200 dark:border-blue-700/60 rounded-xl px-4 py-3 font-mono text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary dark:focus:border-cyan-400 focus:ring-2 focus:ring-primary/20 dark:focus:ring-cyan-400/20 transition-all"
+                                        required
                                     />
                                 </div>
-                                {error && <p className="text-red-500 text-sm">{error}</p>}
+
+                                {error && <p className="text-red-500 text-xs font-semibold">{error}</p>}
+
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="w-full bg-gradient-to-r from-primary to-accent text-white font-semibold h-12 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-60"
+                                    className="w-full bg-gradient-to-r from-primary via-blue-600 to-cyan-500 text-white font-bold h-13 rounded-2xl flex items-center justify-center gap-2 hover:opacity-95 transition-all shadow-lg hover:shadow-cyan-500/25 disabled:opacity-60 cursor-pointer"
                                 >
-                                    {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />Submitting...</> : <>Submit for Verification<ArrowRight className="w-4 h-4" /></>}
+                                    {submitting ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            Submitting Payment...
+                                        </>
+                                    ) : (
+                                        <>
+                                            Submit Payment for Verification
+                                            <ArrowRight className="w-5 h-5" />
+                                        </>
+                                    )}
                                 </button>
                             </form>
                         </motion.div>
-
-                        {/* Email info */}
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-                            className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-                            <Mail className="w-5 h-5 text-green-600 flex-shrink-0" />
-                            <div>
-                                <p className="text-green-700 text-sm font-medium">Report delivery to: {session?.email}</p>
-                                <p className="text-green-600 text-xs">Your full PDF report will be emailed automatically once your payment is verified.</p>
-                            </div>
-                        </motion.div>
                     </>
                 ) : (
-                    /* SUBMITTED STATE */
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-                        <div className="bg-white border border-blue-100 rounded-3xl p-8 shadow-lg text-center">
+                    /* SUBMITTED PENDING STATE */
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                        <div className="bg-white dark:bg-[#0f2342]/90 border border-blue-100 dark:border-blue-500/30 rounded-3xl p-8 shadow-xl text-center">
                             <motion.div
-                                animate={{ scale: [1, 1.15, 1] }}
-                                transition={{ duration: 0.6, type: "spring" }}
-                                className="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-3xl flex items-center justify-center mx-auto mb-5 shadow-xl"
+                                animate={{ scale: [1, 1.12, 1] }}
+                                transition={{ duration: 0.8, repeat: Infinity, repeatDelay: 2 }}
+                                className="w-20 h-20 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-5 shadow-lg"
                             >
                                 <Clock className="w-10 h-10 text-white" />
                             </motion.div>
-                            <h2 className="text-2xl font-bold text-slate-800 mb-2">Payment Submitted for Verification</h2>
-                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-4 text-left">
-                                <p className="text-blue-700 text-sm">
-                                    Your payment is under verification. Once verified, your full 100% assessment PDF report will be automatically sent to <strong>{session?.email}</strong>.
-                                </p>
+
+                            <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Payment Submitted for Verification</h2>
+                            <p className="text-sm text-slate-600 dark:text-blue-200 max-w-md mx-auto">
+                                Your payment status is recorded as <strong className="text-amber-600 dark:text-amber-400 font-bold">Pending</strong>. Our admin team has received immediate Email and SMS alerts for verification.
+                            </p>
+
+                            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-700/50 rounded-2xl p-4 mt-6 text-left max-w-md mx-auto">
+                                <p className="text-amber-800 dark:text-amber-300 text-xs font-bold mb-1">Submitted Reference UTR ID</p>
+                                <p className="font-mono text-lg text-amber-900 dark:text-amber-200 font-black tracking-wide">{existingPayment?.utrNumber}</p>
+                                <div className="mt-2 flex items-center justify-between text-xs text-amber-700 dark:text-amber-400 border-t border-amber-200/60 dark:border-amber-800/60 pt-2">
+                                    <span>Status: <strong className="capitalize">{existingPayment?.status || "Pending"} Verification</strong></span>
+                                    <span>Amount: ₹{existingPayment?.amount || PAYMENT_AMOUNT}</span>
+                                </div>
                             </div>
-                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4 text-left">
-                                <p className="text-amber-700 text-xs font-semibold mb-1">Submitted Reference ID</p>
-                                <p className="font-mono text-amber-800 font-bold">{existingPayment?.utrNumber}</p>
-                                <p className="text-amber-600 text-xs mt-1">Status: Pending Verification</p>
+
+                            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+                                <button
+                                    onClick={() => navigate("/results", { state: { attemptId } })}
+                                    className="flex-1 bg-gradient-to-r from-primary to-accent text-white font-bold h-12 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-md"
+                                >
+                                    View Assessment Results <ArrowRight className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => navigate("/dashboard")}
+                                    className="flex-1 bg-slate-100 dark:bg-blue-900/40 text-slate-700 dark:text-white border border-slate-200 dark:border-blue-700/50 font-bold h-12 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-blue-800/60 transition-all"
+                                >
+                                    Go to Dashboard
+                                </button>
                             </div>
-                            <button
-                                onClick={() => navigate("/dashboard")}
-                                className="mt-6 w-full bg-gradient-to-r from-primary to-accent text-white font-semibold h-12 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-all"
-                            >
-                                Go to My Dashboard <ArrowRight className="w-4 h-4" />
-                            </button>
-                            <p className="text-xs text-slate-400 mt-3">Your dashboard will unlock the full report automatically once verified — no refresh needed.</p>
+
+                            <p className="text-xs text-slate-400 dark:text-blue-300 mt-4">
+                                Once verified on the Admin Dashboard, your full executive PDF report will be auto-delivered to <strong>{session?.email}</strong>.
+                            </p>
                         </div>
                     </motion.div>
                 )}
