@@ -1,5 +1,5 @@
 // Email service for ETHYRA Impact
-import { EmailLogDB, AssessmentResultDB } from "./db";
+import { EmailLogDB, AssessmentResultDB, UserProfileDB } from "./db";
 import { buildAssessmentDoc } from "./reportPdf";
 
 export function buildReportEmailHtml(profile, result) {
@@ -109,30 +109,51 @@ export function buildReportEmailHtml(profile, result) {
 export async function dispatchVerifiedReport(payment) {
   const startTime = Date.now();
   try {
-    let result = AssessmentResultDB.findByAttempt(payment.attemptId);
-    if (!result && payment.assessmentResultId) {
+    // 1. Resolve user profile and login email
+    const userProfile = payment.userProfileId ? UserProfileDB.findById(payment.userProfileId) : null;
+    const recipientEmail = (payment.email || userProfile?.email || "").trim();
+    const recipientName = userProfile?.fullName || payment.fullName || "NGO Leader";
+    const recipientOrg = userProfile?.organizationName || payment.organizationName || "NGO";
+    const recipientPhone = userProfile?.phone || payment.phone || "";
+
+    if (!recipientEmail) {
+      throw new Error("No user email address found. Please ensure the user entered an email during login.");
+    }
+
+    // 2. Resolve assessment results
+    let result = payment.attemptId ? AssessmentResultDB.findByAttempt(payment.attemptId) : null;
+    if (!result && payment.userProfileId) {
       const all = AssessmentResultDB.findByUser(payment.userProfileId);
       result = all[all.length - 1] || null;
     }
+    if (!result && recipientEmail) {
+      const u = UserProfileDB.findByEmail(recipientEmail);
+      if (u) {
+        const all = AssessmentResultDB.findByUser(u.id);
+        result = all[all.length - 1] || null;
+      }
+    }
 
     if (!result) {
-      throw new Error("Assessment result not found for this payment");
+      throw new Error(`Assessment result not found for user ${recipientEmail}`);
     }
 
     const profile = {
-      fullName: payment.fullName,
-      email: payment.email,
-      phone: payment.phone,
-      organizationName: payment.organizationName,
+      fullName: recipientName,
+      email: recipientEmail,
+      phone: recipientPhone,
+      organizationName: recipientOrg,
     };
 
-    // 1. Generate 8-Page PDF Document
+    // 3. Generate 8-Page PDF Document
     const doc = buildAssessmentDoc(result, profile, []);
-    const filename = `ETHYRA_Impact_Assessment_Report_${(profile.organizationName || "NGO").replace(/\s+/g, "_")}.pdf`;
+    const filename = `ETHYRA_Impact_Assessment_Report_${(recipientOrg || "NGO").replace(/\s+/g, "_")}.pdf`;
 
     // Save PDF Blob
     const pdfBlob = doc.output("blob");
-    const pdfBase64 = doc.output("datauristring");
+    const rawDataUri = doc.output("datauristring");
+    // Ensure clean base64 string without data URI scheme prefixes
+    const pdfBase64 = rawDataUri.includes(";base64,") ? rawDataUri.split(";base64,")[1] : rawDataUri;
 
     // Automatic instant file download trigger in browser so user ALWAYS receives report file!
     if (typeof window !== "undefined" && window.document) {
@@ -148,12 +169,14 @@ export async function dispatchVerifiedReport(payment) {
       }
     }
 
-    // 2. Email HTML Body
+    // 4. Email HTML Body
     const html = buildReportEmailHtml(profile, result);
 
-    // 3. Dispatch to Edge Function / Resend API if endpoint available
+    // 5. Dispatch to Gmail SMTP endpoint via Nodemailer
     let messageId = "msg-" + Date.now();
-    let provider = "ETHYRA Direct Mailer";
+    let provider = "Direct Browser Download";
+    let liveEmailSent = false;
+    let emailErrorMessage = null;
 
     try {
       const res = await Promise.race([
@@ -161,57 +184,65 @@ export async function dispatchVerifiedReport(payment) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            to: payment.email,
-            subject: `Your ETHYRA Impact Assessment Report — ${profile.organizationName}`,
+            to: recipientEmail,
+            subject: `Your ETHYRA Impact Assessment Report — ${recipientOrg}`,
             html,
             filename,
             pdfBase64,
             attemptId: payment.attemptId,
           }),
         }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Connection timed out after 25s")), 25000))
       ]);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.messageId) messageId = data.messageId;
-        provider = "Resend Edge API";
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        messageId = data.messageId || messageId;
+        provider = "Gmail SMTP (Nodemailer)";
+        liveEmailSent = true;
+        console.log(`[GMAIL SMTP SUCCESS] Sent report from Gmail to user login email: ${recipientEmail} (${messageId})`);
+      } else {
+        emailErrorMessage = data.error || `HTTP ${res.status} error`;
+        console.warn(`[GMAIL SMTP WARNING] Server responded: ${emailErrorMessage}`);
       }
-    } catch {
-      // Instant simulated mailer fallback
+    } catch (err) {
+      emailErrorMessage = err.message;
+      console.warn("[GMAIL SMTP OFFLINE] Could not reach email API, using local download fallback:", err);
     }
 
-    console.log(`[EMAIL DISPATCH SUCCESS] Sent to ${payment.email} in ${Date.now() - startTime}ms via ${provider}`);
+    console.log(`[EMAIL DISPATCH COMPLETED] Target: ${recipientEmail} in ${Date.now() - startTime}ms via ${provider}`);
 
-    // 4. Record Successful Email Log
+    // 4. Record Email Log
     EmailLogDB.create({
-      recipient: payment.email,
+      recipient: recipientEmail,
       subject: `Your ETHYRA Impact Assessment Report — ${profile.organizationName}`,
-      status: "Sent",
+      status: liveEmailSent ? "Sent" : "Logged / Fallback",
       timestamp: new Date().toISOString(),
       messageId,
       retryCount: 0,
       assessmentId: result.id,
-      paymentId: payment.id,
-      attemptId: payment.attemptId,
-      userId: payment.userProfileId,
+      paymentId: payment?.id || null,
+      attemptId: payment?.attemptId || result.attemptId,
+      userId: payment?.userProfileId || userProfile?.id,
       organizationName: profile.organizationName,
       provider,
       attachmentName: filename,
+      note: emailErrorMessage ? `Live send note: ${emailErrorMessage}` : undefined,
     });
 
-    return { success: true, pdfBase64, filename, doc };
+    return { success: true, liveEmailSent, messageId, provider, emailError: emailErrorMessage, pdfBase64, filename, doc };
   } catch (err) {
     EmailLogDB.create({
-      recipient: payment.email,
+      recipient: payment?.email || "Unknown",
       subject: "ETHYRA Impact Assessment Report",
       status: "Failed",
       timestamp: new Date().toISOString(),
       retryCount: 1,
       errorMessage: err.message,
-      paymentId: payment.id,
-      attemptId: payment.attemptId,
-      userId: payment.userProfileId,
-      organizationName: payment.organizationName,
+      paymentId: payment?.id || null,
+      attemptId: payment?.attemptId || null,
+      userId: payment?.userProfileId || null,
+      organizationName: payment?.organizationName || "Unknown",
       provider: "ETHYRA Mailer",
     });
     return { success: false, error: err.message };

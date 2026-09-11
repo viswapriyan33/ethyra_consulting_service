@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CreditCard, Hash, ArrowRight, Loader2, LogOut, CheckCircle, Clock, QrCode } from "lucide-react";
 import { getUserSession, logoutUser, PAYMENT_AMOUNT } from "../utils/authUtils";
-import { PaymentRecordDB } from "../utils/db";
+import { PaymentRecordDB, UserProfileDB } from "../utils/db";
 import { sendPaymentNotifications } from "../utils/paymentNotificationService";
 import ThemeToggle from "../components/ThemeToggle";
 import paymentQrImg from "../assets/ethyra_upi_qr.png";
@@ -44,16 +44,22 @@ export default function Payment() {
         setSubmitting(true);
         setError("");
 
+        const profile = (session?.id ? UserProfileDB.findById(session.id) : null) || session;
+        const userEmail = (profile?.email || session?.email || "").trim();
+        const userFullName = profile?.fullName || session?.fullName || "";
+        const userOrg = profile?.organizationName || session?.organizationName || "";
+        const userPhone = profile?.phone || session?.phone || "";
+
         try {
             // 1. Create Payment Record with Pending Status in DB
             const record = PaymentRecordDB.create({
-                userProfileId: session?.id,
+                userProfileId: session?.id || profile?.id,
                 attemptId,
                 assessmentResultId: resultId,
-                fullName: session?.fullName,
-                email: session?.email,
-                phone: session?.phone,
-                organizationName: session?.organizationName,
+                fullName: userFullName,
+                email: userEmail,
+                phone: userPhone,
+                organizationName: userOrg,
                 amount: PAYMENT_AMOUNT,
                 utrNumber: trimmedUtr,
                 status: "pending",
@@ -62,10 +68,10 @@ export default function Payment() {
 
             // 2. Trigger Immediate Email Alert (Nodemailer) & SMS Alert (+918610904242)
             await sendPaymentNotifications({
-                fullName: session?.fullName,
-                email: session?.email,
-                organizationName: session?.organizationName,
-                phone: session?.phone,
+                fullName: userFullName,
+                email: userEmail,
+                organizationName: userOrg,
+                phone: userPhone,
                 utrNumber: trimmedUtr,
             });
 
