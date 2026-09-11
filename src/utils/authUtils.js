@@ -1,6 +1,6 @@
 // Auth Constants
-export const ADMIN_EMAIL = "connect@ethyra.in";
-export const ADMIN_PASSWORD = "ethyrians@7729";
+export const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || "connect@ethyra.in";
+export const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "admin123";
 export const ADMIN_SESSION_KEY = "ethyra_admin_session";
 export const USER_SESSION_KEY = "ethyra_user_session";
 export const PAYMENT_AMOUNT = 149;

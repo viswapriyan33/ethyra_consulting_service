@@ -132,19 +132,36 @@ export async function sendPaymentNotifications({
     let emailSent = false;
 
     try {
-        /*
-         * Change this URL to your deployed Edge Function URL
-         * once the backend function is deployed.
-         *
-         * For now, we only prepare the notification.
-         */
-
         console.log("[EMAIL] Notification prepared.");
         console.log("[EMAIL] Recipients:", emailRecipients);
         console.log("[EMAIL] Subject:", emailSubject);
 
+        // Dispatch via Gmail SMTP backend endpoint
+        try {
+            const res = await fetch("/api/sendPaymentNotification", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fullName,
+                    email,
+                    organizationName,
+                    phone,
+                    utrNumber,
+                    emailSubject,
+                    emailBodyHtml,
+                }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                emailSent = !!data.success;
+                console.log("[EMAIL] Gmail SMTP dispatch result:", data);
+            }
+        } catch (dispatchErr) {
+            console.warn("[EMAIL] Backend notification call skipped/failed, keeping simulated flow:", dispatchErr);
+        }
+
         /*
-         * SMS is also currently simulated.
+         * SMS is currently simulated.
          */
         console.log(`[SMS ALERT TO ${smsRecipient}]:`);
         console.log(smsText);

@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
     FileSpreadsheet, LogOut, Users, BarChart2, CreditCard, Mail, Download,
     Search, ChevronDown, ChevronUp, CheckCircle2, XCircle, Loader2,
-    FileDown, RefreshCw, Shield
+    FileDown, RefreshCw, Shield, AlertCircle, Send
 } from "lucide-react";
 import {
     PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -20,28 +20,60 @@ import ThemeToggle from "../components/ThemeToggle";
 const LOGO = "https://media.base44.com/images/public/6a17e06edbff878f7a211934/217e87b0f_Screenshot2026-05-25073529.png";
 
 // ---------- Verification Modal ----------
-function VerifyModal({ payment, onConfirm, onCancel, loading }) {
+function VerifyModal({ payment, onConfirm, onCancel, loading, verifyProgress }) {
+    const [senderInfo, setSenderInfo] = useState("");
+
+    useEffect(() => {
+        fetch("/api/emailStatus")
+            .then(r => r.json())
+            .then(data => {
+                if (data.user) setSenderInfo(data.user);
+            })
+            .catch(() => {});
+    }, []);
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                className="bg-white dark:bg-[#0f2342] text-slate-800 dark:text-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-blue-100 dark:border-blue-500/30">
+                className="bg-white dark:bg-[#0f2342] text-slate-800 dark:text-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-blue-100 dark:border-blue-500/30">
                 <div className="text-center mb-6">
                     <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                         <Mail className="w-8 h-8 text-white" />
                     </div>
                     <h2 className="text-xl font-bold text-slate-800 dark:text-white">Verify Payment & Dispatch Report</h2>
-                </div>
-                <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-700/60 rounded-xl p-4 mb-5">
-                    <p className="text-amber-800 dark:text-amber-300 text-xs sm:text-sm">
-                        Are you sure you want to verify UTR <strong>{payment?.utrNumber}</strong> and dispatch the executive PDF report to <strong>{payment?.email}</strong>?
+                    <p className="text-xs text-slate-500 dark:text-blue-200 mt-1">
+                        Dispatches official 8-page PDF report to user via <strong>Gmail SMTP</strong>
                     </p>
                 </div>
-                <div className="space-y-2 mb-6">
+
+                <div className="bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-700/60 rounded-xl p-4 mb-5 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500 dark:text-blue-300">From (Your Gmail):</span>
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {senderInfo || "stevejesa24@gmail.com"}
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500 dark:text-blue-300">To (User Login Email):</span>
+                        <span className="font-mono font-bold text-blue-700 dark:text-cyan-300">{payment?.email}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500 dark:text-blue-300">Protocol:</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">Gmail SMTP (smtp.gmail.com)</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500 dark:text-blue-300">Attachment:</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-200">8-Page Assessment Report PDF</span>
+                    </div>
+                </div>
+
+                <div className="space-y-2 mb-6 bg-slate-50 dark:bg-[#0a1628]/60 p-4 rounded-xl border border-slate-100 dark:border-blue-900/40">
                     {[
                         ["User Name", payment?.fullName],
                         ["Organization", payment?.organizationName],
-                        ["Transaction UTR", payment?.utrNumber],
+                        ["Transaction UTR / ID", payment?.utrNumber],
                         ["Amount", `₹${payment?.amount}`],
+                        ["Submission Date", payment?.paidAt ? new Date(payment.paidAt).toLocaleString("en-IN") : "—"],
                     ].map(([k, v]) => (
                         <div key={k} className="flex justify-between text-xs sm:text-sm">
                             <span className="text-slate-500 dark:text-blue-300">{k}:</span>
@@ -49,14 +81,22 @@ function VerifyModal({ payment, onConfirm, onCancel, loading }) {
                         </div>
                     ))}
                 </div>
+
+                {loading && (
+                    <div className="mb-5 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-700/60 rounded-xl p-3 flex items-center gap-3 text-amber-800 dark:text-amber-200 text-xs">
+                        <Loader2 className="w-4 h-4 animate-spin text-amber-600 flex-shrink-0" />
+                        <span>{verifyProgress || "Compiling PDF and sending via Gmail SMTP..."}</span>
+                    </div>
+                )}
+
                 <div className="flex gap-3">
-                    <button onClick={onCancel}
-                        className="flex-1 border border-slate-300 dark:border-blue-700/60 text-slate-600 dark:text-slate-200 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-blue-900/40 text-xs sm:text-sm font-semibold transition-all">
+                    <button onClick={onCancel} disabled={loading}
+                        className="flex-1 border border-slate-300 dark:border-blue-700/60 text-slate-600 dark:text-slate-200 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-blue-900/40 text-xs sm:text-sm font-semibold transition-all disabled:opacity-50">
                         Cancel
                     </button>
                     <button onClick={onConfirm} disabled={loading}
                         className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 hover:opacity-95 text-xs sm:text-sm transition-all shadow-md disabled:opacity-60 cursor-pointer">
-                        {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Dispatching...</> : <><CheckCircle2 className="w-4 h-4" />Verify & Send</>}
+                        {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Sending via Gmail...</> : <><CheckCircle2 className="w-4 h-4" />Verify & Send PDF</>}
                     </button>
                 </div>
             </motion.div>
@@ -76,6 +116,8 @@ export default function AdminDashboard() {
     const [expandedUser, setExpandedUser] = useState(null);
     const [verifyModal, setVerifyModal] = useState(null);
     const [verifying, setVerifying] = useState(false);
+    const [verifyProgress, setVerifyProgress] = useState("");
+    const [actionFeedback, setActionFeedback] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -109,15 +151,97 @@ export default function AdminDashboard() {
     const confirmVerifyPayment = async () => {
         if (!verifyModal) return;
         setVerifying(true);
+        setVerifyProgress("Generating 8-page PDF and contacting Gmail SMTP server...");
         const startTime = Date.now();
         PaymentRecordDB.update(verifyModal.id, { status: "success" });
+        const targetEmail = verifyModal.email;
         const res = await dispatchVerifiedReport(verifyModal);
         const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
         loadAll();
         setVerifyModal(null);
         setVerifying(false);
+        setVerifyProgress("");
+
         if (res.success) {
-            alert(`✓ Payment Verified! 8-Page PDF Report dispatched to ${verifyModal.email} in ${elapsedSeconds} seconds.`);
+            if (res.liveEmailSent) {
+                setActionFeedback({
+                    type: "success",
+                    title: "✓ Payment Verified & PDF Dispatched via Gmail SMTP!",
+                    message: `Payment verified! The full 8-page PDF Assessment Report was successfully sent to ${targetEmail} via Gmail SMTP in ${elapsedSeconds}s (Message ID: ${res.messageId}).`,
+                });
+            } else if (res.emailError) {
+                setActionFeedback({
+                    type: "warning",
+                    title: "✓ Payment Verified (PDF Downloaded Locally)",
+                    message: `Payment marked as verified and report PDF generated. Note: Gmail SMTP send was not completed: ${res.emailError}.`,
+                });
+            } else {
+                setActionFeedback({
+                    type: "success",
+                    title: "✓ Payment Verified",
+                    message: `8-Page PDF Report dispatched to ${targetEmail} in ${elapsedSeconds}s.`,
+                });
+            }
+        } else {
+            setActionFeedback({
+                type: "error",
+                title: "Verification Error",
+                message: `Failed to dispatch report to ${targetEmail}: ${res.error || "Unknown error"}`,
+            });
+        }
+    };
+
+    const handleResendEmail = async (payment) => {
+        setVerifying(true);
+        const startTime = Date.now();
+        const res = await dispatchVerifiedReport(payment);
+        const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+        loadAll();
+        setVerifying(false);
+
+        if (res.liveEmailSent) {
+            setActionFeedback({
+                type: "success",
+                title: "PDF Report Resent via Gmail SMTP!",
+                message: `8-Page PDF report successfully delivered to ${payment.email} in ${elapsedSeconds}s (Message ID: ${res.messageId}).`,
+            });
+        } else {
+            setActionFeedback({
+                type: "warning",
+                title: "Report Generated (Local Fallback)",
+                message: res.emailError ? `Could not send via Gmail SMTP: ${res.emailError}` : "Report compiled and downloaded.",
+            });
+        }
+    };
+
+    const handleDirectSendEmail = async (user, result) => {
+        setVerifying(true);
+        const startTime = Date.now();
+        const paymentLike = {
+            userProfileId: user.id,
+            email: user.email,
+            fullName: user.fullName,
+            organizationName: user.organizationName,
+            phone: user.phone,
+            attemptId: result.attemptId,
+        };
+        const res = await dispatchVerifiedReport(paymentLike);
+        const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+        loadAll();
+        setVerifying(false);
+
+        if (res.liveEmailSent) {
+            setActionFeedback({
+                type: "success",
+                title: "PDF Report Delivered via Gmail SMTP!",
+                message: `8-Page Assessment PDF successfully sent from your Gmail to user login email (${user.email}) in ${elapsedSeconds}s (Message ID: ${res.messageId}).`,
+            });
+        } else {
+            setActionFeedback({
+                type: "warning",
+                title: "Report Generated (Local Fallback)",
+                message: res.emailError ? `Could not send via Gmail SMTP: ${res.emailError}` : `Report compiled for ${user.email}.`,
+            });
         }
     };
 
@@ -174,10 +298,11 @@ export default function AdminDashboard() {
         a.href = url; a.download = "ETHYRA_Impact_Assessment_Export.csv"; a.click();
     };
 
+    const pendingPayments = payments.filter(p => p.status === "pending");
     const tabs = [
         { key: "users", label: "Users", icon: Users },
         { key: "analytics", label: "Analytics", icon: BarChart2 },
-        { key: "payments", label: "Payments", icon: CreditCard },
+        { key: "payments", label: `Payments${pendingPayments.length > 0 ? ` (${pendingPayments.length})` : ""}`, icon: CreditCard, count: pendingPayments.length },
         { key: "emails", label: "Email Logs", icon: Mail },
         { key: "export", label: "Export", icon: Download },
     ];
@@ -191,7 +316,13 @@ export default function AdminDashboard() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/50 dark:bg-gradient-to-br dark:from-[#0a1628] dark:via-[#0f2347] dark:to-[#1e3a8a] text-slate-800 dark:text-white transition-colors duration-300">
             {verifyModal && (
-                <VerifyModal payment={verifyModal} onConfirm={confirmVerifyPayment} onCancel={() => setVerifyModal(null)} loading={verifying} />
+                <VerifyModal
+                    payment={verifyModal}
+                    onConfirm={confirmVerifyPayment}
+                    onCancel={() => { setVerifyModal(null); setVerifyProgress(""); }}
+                    loading={verifying}
+                    verifyProgress={verifyProgress}
+                />
             )}
 
             {/* Header */}
@@ -221,6 +352,44 @@ export default function AdminDashboard() {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 py-6 pb-16 space-y-6">
+                {/* Action Feedback Banner */}
+                {actionFeedback && (
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                        className={`p-4 rounded-2xl border shadow-md flex items-start justify-between gap-3 ${
+                            actionFeedback.type === "success" ? "bg-emerald-50 dark:bg-emerald-950/80 border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-100" :
+                            actionFeedback.type === "warning" ? "bg-amber-50 dark:bg-amber-950/80 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100" :
+                            "bg-rose-50 dark:bg-rose-950/80 border-rose-300 dark:border-rose-700 text-rose-900 dark:text-rose-100"
+                        }`}>
+                        <div className="flex items-start gap-3">
+                            {actionFeedback.type === "success" ? <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />}
+                            <div>
+                                <p className="font-bold text-sm">{actionFeedback.title}</p>
+                                <p className="text-xs mt-0.5 opacity-90">{actionFeedback.message}</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setActionFeedback(null)} className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg text-xs font-bold transition-all">✕</button>
+                    </motion.div>
+                )}
+
+                {/* Pending Payments Alert Callout */}
+                {pendingPayments.length > 0 && (
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                        className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl p-4 text-white shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <CreditCard className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <p className="font-bold text-sm">{pendingPayments.length} Payment{pendingPayments.length > 1 ? "s" : ""} Pending Verification</p>
+                                <p className="text-xs text-amber-100">Review submitted UTR numbers and dispatch the 8-page PDF report directly to user emails via Gmail SMTP.</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setTab("payments")} className="bg-white text-amber-900 font-bold px-4 py-2 rounded-xl text-xs hover:bg-amber-50 transition-all shadow cursor-pointer whitespace-nowrap">
+                            Review & Verify ({pendingPayments.length}) →
+                        </button>
+                    </motion.div>
+                )}
+
                 {/* Stats */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {[
@@ -246,6 +415,11 @@ export default function AdminDashboard() {
                         <button key={t.key} onClick={() => setTab(t.key)}
                             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${tab === t.key ? "bg-gradient-to-r from-primary to-cyan-500 text-white shadow-md" : "text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-blue-900/40"}`}>
                             <t.icon className="w-3.5 h-3.5" />{t.label}
+                            {t.count > 0 && (
+                                <span className="bg-amber-400 text-amber-950 text-[10px] font-black px-1.5 py-0.2 rounded-full ml-1 animate-pulse">
+                                    {t.count}
+                                </span>
+                            )}
                         </button>
                     ))}
                 </div>
@@ -264,62 +438,182 @@ export default function AdminDashboard() {
                                 <table className="w-full">
                                     <thead>
                                         <tr className="bg-gradient-to-r from-primary to-blue-900 text-white text-xs">
-                                            {["#", "User / Org", "Contact", "Score", "Rating", "Risk", "Date", "Report", ""].map(h => (
+                                            {["#", "User / Org", "Contact", "Score", "Rating", "Risk", "Date", "Payment & Report", ""].map(h => (
                                                 <th key={h} className="px-3 py-3 text-left font-bold uppercase tracking-wider whitespace-nowrap">{h}</th>
                                             ))}
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        {filteredUsers.length === 0 && (
+                                            <tr><td colSpan={9} className="text-center py-12 text-slate-400 text-sm">No users found</td></tr>
+                                        )}
                                         {filteredUsers.map((user, i) => {
                                             const r = getLatestResult(user.id);
                                             const pct = r ? Math.round(r.percentage ?? 0) : null;
                                             const isExpanded = expandedUser === user.id;
+                                            const userPayments = payments.filter(p => p.userProfileId === user.id || p.email === user.email);
+                                            const pendingPay = userPayments.find(p => p.status === "pending");
+                                            const successPay = userPayments.find(p => p.status === "success");
 
                                             return (
-                                                <tr key={user.id} className={`text-sm border-b border-slate-100 dark:border-blue-900/40 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all ${i % 2 === 0 ? "bg-white dark:bg-[#0f2342]/90" : "bg-slate-50/50 dark:bg-[#0a1628]/40"}`}>
-                                                    <td className="px-3 py-3 text-slate-400 font-mono text-xs">{i + 1}</td>
-                                                    <td className="px-3 py-3">
-                                                        <p className="font-semibold text-slate-800 dark:text-white">{user.fullName}</p>
-                                                        <p className="text-xs text-slate-500 dark:text-blue-200">{user.organizationName}</p>
-                                                    </td>
-                                                    <td className="px-3 py-3">
-                                                        <p className="text-xs text-slate-600 dark:text-slate-300">{user.email}</p>
-                                                        <p className="text-xs text-slate-400 dark:text-blue-300">{user.phone}</p>
-                                                    </td>
-                                                    <td className="px-3 py-3">
-                                                        {pct !== null ? (
-                                                            <span className={`font-bold ${pct >= 70 ? "text-green-600 dark:text-emerald-400" : pct >= 50 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-rose-400"}`}>{pct}%</span>
-                                                        ) : <span className="text-slate-300">—</span>}
-                                                    </td>
-                                                    <td className="px-3 py-3 text-xs text-slate-600 dark:text-slate-200">{r?.performanceLevel || "—"}</td>
-                                                    <td className="px-3 py-3">
-                                                        {r?.riskLevel ? (
-                                                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.riskLevel === "Low" ? "bg-green-100 dark:bg-emerald-950 text-green-700 dark:text-emerald-300" : r.riskLevel === "Medium" ? "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300" : "bg-red-100 dark:bg-rose-950 text-red-700 dark:text-rose-300"}`}>
-                                                                {r.riskLevel}
-                                                            </span>
-                                                        ) : "—"}
-                                                    </td>
-                                                    <td className="px-3 py-3 text-xs text-slate-400 dark:text-blue-300 whitespace-nowrap">
-                                                        {r ? new Date(r.completedAt).toLocaleDateString("en-IN") : "—"}
-                                                    </td>
-                                                    <td className="px-3 py-3">
-                                                        {r && (
-                                                            <button onClick={() => {
-                                                                const profile = { fullName: user.fullName, email: user.email, phone: user.phone, organizationName: user.organizationName };
-                                                                const doc = buildAssessmentDoc(r, profile, []);
-                                                                doc.save(`ETHYRA_${user.organizationName?.replace(/\s+/g, "_")}.pdf`);
-                                                            }} className="p-1.5 text-primary dark:text-cyan-400 hover:bg-primary/10 rounded-lg transition-all" title="Download PDF">
-                                                                <FileDown className="w-4 h-4" />
+                                                <Fragment key={user.id}>
+                                                    <tr className={`text-sm border-b border-slate-100 dark:border-blue-900/40 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all ${i % 2 === 0 ? "bg-white dark:bg-[#0f2342]/90" : "bg-slate-50/50 dark:bg-[#0a1628]/40"}`}>
+                                                        <td className="px-3 py-3 text-slate-400 font-mono text-xs">{i + 1}</td>
+                                                        <td className="px-3 py-3">
+                                                            <p className="font-semibold text-slate-800 dark:text-white">{user.fullName}</p>
+                                                            <p className="text-xs text-slate-500 dark:text-blue-200">{user.organizationName}</p>
+                                                        </td>
+                                                        <td className="px-3 py-3">
+                                                            <p className="text-xs text-slate-600 dark:text-slate-300">{user.email}</p>
+                                                            <p className="text-xs text-slate-400 dark:text-blue-300">{user.phone}</p>
+                                                        </td>
+                                                        <td className="px-3 py-3">
+                                                            {pct !== null ? (
+                                                                <span className={`font-bold ${pct >= 70 ? "text-green-600 dark:text-emerald-400" : pct >= 50 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-rose-400"}`}>{pct}%</span>
+                                                            ) : <span className="text-slate-300">—</span>}
+                                                        </td>
+                                                        <td className="px-3 py-3 text-xs text-slate-600 dark:text-slate-200">{r?.performanceLevel || "—"}</td>
+                                                        <td className="px-3 py-3">
+                                                            {r?.riskLevel ? (
+                                                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.riskLevel === "Low" ? "bg-green-100 dark:bg-emerald-950 text-green-700 dark:text-emerald-300" : r.riskLevel === "Medium" ? "bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300" : "bg-red-100 dark:bg-rose-950 text-red-700 dark:text-rose-300"}`}>
+                                                                    {r.riskLevel}
+                                                                </span>
+                                                            ) : "—"}
+                                                        </td>
+                                                        <td className="px-3 py-3 text-xs text-slate-400 dark:text-blue-300 whitespace-nowrap">
+                                                            {r ? new Date(r.completedAt).toLocaleDateString("en-IN") : "—"}
+                                                        </td>
+                                                        <td className="px-3 py-3">
+                                                            {pendingPay ? (
+                                                                <button
+                                                                    onClick={() => setVerifyModal(pendingPay)}
+                                                                    className="px-2.5 py-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer whitespace-nowrap"
+                                                                    title={`Verify payment (UTR: ${pendingPay.utrNumber}) and dispatch PDF via Gmail SMTP`}
+                                                                >
+                                                                    <CheckCircle2 className="w-3.5 h-3.5" />Verify & Send
+                                                                </button>
+                                                            ) : successPay ? (
+                                                                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-green-100 dark:bg-emerald-950 text-green-700 dark:text-emerald-300">
+                                                                        Verified ✓
+                                                                    </span>
+                                                                    <button
+                                                                        onClick={() => handleResendEmail(successPay)}
+                                                                        className="p-1.5 text-blue-600 dark:text-cyan-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
+                                                                        title="Resend 8-Page PDF via Gmail SMTP"
+                                                                    >
+                                                                        <Send className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                    {r && (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                const profile = { fullName: user.fullName, email: user.email, phone: user.phone, organizationName: user.organizationName };
+                                                                                const doc = buildAssessmentDoc(r, profile, []);
+                                                                                doc.save(`ETHYRA_${user.organizationName?.replace(/\s+/g, "_")}.pdf`);
+                                                                            }}
+                                                                            className="p-1.5 text-primary dark:text-cyan-400 hover:bg-primary/10 rounded-lg transition-all"
+                                                                            title="Download PDF locally"
+                                                                        >
+                                                                            <FileDown className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                                                    <span className="text-xs text-slate-400">Unpaid</span>
+                                                                    {r && (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={() => handleDirectSendEmail(user, r)}
+                                                                                className="p-1.5 text-blue-600 dark:text-cyan-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
+                                                                                title={`Send 8-Page PDF Report directly to user login email (${user.email}) via Gmail SMTP`}
+                                                                            >
+                                                                                <Send className="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    const profile = { fullName: user.fullName, email: user.email, phone: user.phone, organizationName: user.organizationName };
+                                                                                    const doc = buildAssessmentDoc(r, profile, []);
+                                                                                    doc.save(`ETHYRA_${user.organizationName?.replace(/\s+/g, "_")}.pdf`);
+                                                                                }}
+                                                                                className="p-1.5 text-slate-400 hover:text-primary dark:hover:text-cyan-400 hover:bg-primary/10 rounded-lg transition-all"
+                                                                                title="Download preview PDF"
+                                                                            >
+                                                                                <FileDown className="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-3 py-3">
+                                                            <button onClick={() => setExpandedUser(isExpanded ? null : user.id)}
+                                                                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-all">
+                                                                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                                             </button>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-3 py-3">
-                                                        <button onClick={() => setExpandedUser(isExpanded ? null : user.id)}
-                                                            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-all">
-                                                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                                                        </button>
-                                                    </td>
-                                                </tr>
+                                                        </td>
+                                                    </tr>
+
+                                                    {isExpanded && (
+                                                        <tr className="bg-blue-50/40 dark:bg-blue-950/30 border-b border-blue-100 dark:border-blue-900/60">
+                                                            <td colSpan={9} className="p-4">
+                                                                <div className="bg-white dark:bg-[#0a1628] rounded-xl p-4 border border-blue-100 dark:border-blue-900/40 space-y-3">
+                                                                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-blue-900/40 pb-2">
+                                                                        <p className="font-bold text-xs text-primary dark:text-cyan-400 uppercase tracking-wider">User Details & Status</p>
+                                                                        <div className="flex items-center gap-2">
+                                                                            {pendingPay && (
+                                                                                <button
+                                                                                    onClick={() => setVerifyModal(pendingPay)}
+                                                                                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow cursor-pointer"
+                                                                                >
+                                                                                    <CheckCircle2 className="w-3.5 h-3.5" /> Verify & Dispatch PDF via Gmail
+                                                                                </button>
+                                                                            )}
+                                                                            {successPay && (
+                                                                                <button
+                                                                                    onClick={() => handleResendEmail(successPay)}
+                                                                                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow cursor-pointer"
+                                                                                >
+                                                                                    <Send className="w-3.5 h-3.5" /> Resend Report via Gmail SMTP
+                                                                                </button>
+                                                                            )}
+                                                                            {!pendingPay && !successPay && r && (
+                                                                                <button
+                                                                                    onClick={() => handleDirectSendEmail(user, r)}
+                                                                                    className="px-3 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow cursor-pointer"
+                                                                                >
+                                                                                    <Send className="w-3.5 h-3.5" /> Dispatch Report to {user.email} via Gmail SMTP
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                                                                        <div>
+                                                                            <span className="text-slate-400 block">Organization:</span>
+                                                                            <span className="font-semibold text-slate-800 dark:text-white">{user.organizationName || "—"}</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-slate-400 block">Phone:</span>
+                                                                            <span className="font-semibold text-slate-800 dark:text-white">{user.phone || "—"}</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-slate-400 block">Payment Status:</span>
+                                                                            <span className="font-bold text-slate-800 dark:text-white">
+                                                                                {pendingPay ? `Pending (UTR: ${pendingPay.utrNumber})` : successPay ? `Verified (UTR: ${successPay.utrNumber})` : "No payment submitted"}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-slate-400 block">CSR Eligibility:</span>
+                                                                            <span className={`font-bold ${r?.isEligible ? "text-emerald-600" : "text-slate-500"}`}>
+                                                                                {r ? (r.isEligible ? "Eligible" : "Not Eligible") : "—"}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </Fragment>
                                             );
                                         })}
                                     </tbody>
@@ -420,16 +714,24 @@ export default function AdminDashboard() {
                                                     </td>
                                                     <td className="px-3 py-3">
                                                         {pay.status === "pending" && (
-                                                            <div className="flex items-center gap-1">
+                                                            <div className="flex items-center gap-1.5 whitespace-nowrap">
                                                                 <button onClick={() => setVerifyModal(pay)}
-                                                                    className="px-2.5 py-1 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition-all flex items-center gap-1" title="Verify Payment">
-                                                                    <CheckCircle2 className="w-3.5 h-3.5" />Verify
+                                                                    className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                                                                    title="Verify payment and dispatch 8-page PDF report to user via Gmail SMTP">
+                                                                    <CheckCircle2 className="w-3.5 h-3.5" />Verify & Send PDF
                                                                 </button>
                                                                 <button onClick={() => markFailed(pay.id)}
-                                                                    className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-all" title="Mark Failed">
+                                                                    className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-all" title="Mark Failed">
                                                                     <XCircle className="w-4 h-4" />
                                                                 </button>
                                                             </div>
+                                                        )}
+                                                        {pay.status === "success" && (
+                                                            <button onClick={() => handleResendEmail(pay)}
+                                                                className="px-2.5 py-1 border border-blue-200 dark:border-blue-700/60 text-primary dark:text-cyan-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all whitespace-nowrap cursor-pointer"
+                                                                title="Resend 8-Page PDF Report via Gmail SMTP">
+                                                                <Send className="w-3 h-3" />Resend PDF (Gmail)
+                                                            </button>
                                                         )}
                                                     </td>
                                                 </tr>
