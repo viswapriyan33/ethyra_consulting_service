@@ -1,111 +1,108 @@
 // @ts-nocheck
-// Deno Edge Function for Resend Email dispatch with jsPDF Attachment
-// Matches Section 10 & 11 specifications
+/**
+ * Backend Email Dispatch Function using Gmail SMTP & Google App Passwords (via Nodemailer)
+ * Replaces previous Resend API implementation.
+ */
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import nodemailer from "nodemailer";
 
-const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+interface EmailPayload {
+    to: string;
+    subject: string;
+    html: string;
+    filename?: string;
+    pdfBase64?: string;
+    attemptId?: string;
+    adminEmail?: string;
+}
 
-serve(async (req: any) => {
-    if (req.method === "OPTIONS") {
-        return new Response("ok", { headers: corsHeaders });
+export function createGmailTransporter() {
+    const user = (process.env.GMAIL_USER || "").trim();
+    const rawPass = (process.env.GMAIL_APP_PASSWORD || "").trim();
+    const pass = rawPass.replace(/\s+/g, ""); // Strip whitespace from 16-char app password
+
+    if (!user || !pass) {
+        throw new Error("GMAIL_USER or GMAIL_APP_PASSWORD is not set in the environment.");
     }
 
-    try {
-        const { to, subject, html, filename, pdfBase64, attemptId, adminEmail } = await req.json();
+    return {
+        user,
+        transporter: nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user,
+                pass,
+            },
+        }),
+    };
+}
 
-        const RESEND_API_KEY =  Deno.env.get("RESEND_API_KEY");
-        if (!RESEND_API_KEY) {
-            throw new Error("RESEND_API_KEY is not set on the server-side environment.");
+export async function sendReportEmailWithPdf(payload: EmailPayload) {
+    const { to, subject, html, filename, pdfBase64, adminEmail } = payload;
+    const { user, transporter } = createGmailTransporter();
+
+    const targetUserEmail = (to || "").trim();
+    if (!targetUserEmail) {
+        throw new Error("Recipient user email is required.");
+    }
+
+    const attachments = [];
+    if (pdfBase64) {
+        let base64Clean = String(pdfBase64).trim();
+        if (base64Clean.includes(";base64,")) {
+            base64Clean = base64Clean.split(";base64,")[1];
+        } else if (base64Clean.startsWith("data:")) {
+            base64Clean = base64Clean.replace(/^data:[^,]+,/, "");
         }
+        base64Clean = base64Clean.replace(/\s+/g, "");
 
-        // Convert data URL (e.g. data:application/pdf;base64,...) to format Resend requires
-        const base64Data = pdfBase64.split(",")[1] || pdfBase64;
+        const pdfBuffer = Buffer.from(base64Clean, "base64");
+        const magic = pdfBuffer.slice(0, 4).toString("utf8");
+        console.log(`[Gmail SMTP] Decoded PDF attachment (${pdfBuffer.length} bytes, header: "${magic}")`);
 
-        const payload = {
-            from: "ETHYRA Impact <onboarding@resend.dev>",
-            to: [to, adminEmail || "connect@ethyra.in"],
-            subject: subject,
-            html: html,
-            attachments: [
-                {
-                    filename: filename,
-                    content: base64Data,
-                },
-            ],
-        };
+        attachments.push({
+            filename: filename || "ETHYRA_Impact_Assessment_Report.pdf",
+            content: pdfBuffer,
+            contentType: "application/pdf",
+        });
+    }
 
-        let attempts = 0;
-        let success = false;
-        let messageId = "";
-        let lastError = "";
+    const mailOptions = {
+        from: `"ETHYRA Impact" <${user}>`,
+        to: targetUserEmail,
+        subject: subject || "ETHYRA Impact Assessment Report",
+        html: html || "<p>Your ETHYRA Impact Report is attached.</p>",
+        attachments,
+    };
 
-        while (attempts < 3 && !success) {
-            attempts++;
-            try {
-                const response = await fetch("https://api.resend.com/emails", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${RESEND_API_KEY}`,
-                    },
-                    body: JSON.stringify(payload),
-                });
+    const secondary = (adminEmail || process.env.ADMIN_EMAIL || "").trim();
+    if (secondary && secondary.toLowerCase() !== targetUserEmail.toLowerCase()) {
+        mailOptions.bcc = secondary;
+    }
 
-                const result = await response.json();
+    let attempts = 0;
+    let lastError = null;
 
-                if (response.status >= 200 && response.status < 300) {
-                    success = true;
-                    messageId = result.id;
-                } else if (response.status >= 400 && response.status < 500) {
-                    // Permanent abort for 4xx errors
-                    throw new Error(`Resend API Error (Permanent - 4xx): ${response.status} - ${JSON.stringify(result)}`);
-                } else {
-                    // 5xx errors: Retriable
-                    throw new Error(`Resend API Error (Retriable - 5xx): ${response.status} - ${JSON.stringify(result)}`);
-                }
-            } catch (err: any) {
-                lastError = err.message;
-                if (err.message.includes("Permanent - 4xx")) {
-                    break; // Abort retry
-                }
-                // Wait backoff: 1s for try 1, 2s for try 2
-                if (attempts < 3) {
-                    await new Promise(r => setTimeout(r, attempts * 1000));
-                }
-            }
-        }
-
-        if (!success) {
-            throw new Error(`Failed to send email after ${attempts} attempts. Last error: ${lastError}`);
-        }
-
-        return new Response(
-            JSON.stringify({
+    while (attempts < 3) {
+        attempts++;
+        try {
+            const info = await transporter.sendMail(mailOptions);
+            return {
                 success: true,
-                messageId,
+                messageId: info.messageId,
+                from: user,
+                to: targetUserEmail,
                 attempts,
-                recipients: [to, adminEmail || "connect@ethyra.in"],
-            }),
-            {
-                status: 200,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
+            };
+        } catch (err: any) {
+            lastError = err;
+            if (attempts < 3) {
+                await new Promise((resolve) => setTimeout(resolve, attempts * 1000));
             }
-        );
-    } catch (error: any) {
-        return new Response(
-            JSON.stringify({
-                success: false,
-                error: error.message,
-            }),
-            {
-                status: 400,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-            }
-        );
+        }
     }
-});
 
+    throw new Error(`Failed to send email via Gmail SMTP after ${attempts} attempts: ${lastError?.message || lastError}`);
+}
+
+export default sendReportEmailWithPdf;
