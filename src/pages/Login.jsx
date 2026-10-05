@@ -2,295 +2,455 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-    User, Building2, Phone, Mail, ArrowRight, Loader2,
-    ShieldCheck, Globe, AtSign, PhoneCall
+  User,
+  Building2,
+  Phone,
+  Mail,
+  ArrowRight,
+  Loader2,
+  ShieldCheck,
+  Globe,
+  AtSign,
+  PhoneCall,
 } from "lucide-react";
-import { loginAdmin, loginUser, validateEmail, validatePhone } from "../utils/authUtils";
+import {
+  loginAdmin,
+  loginUser,
+  validateEmail,
+  validatePhone,
+} from "../utils/authUtils";
 import { UserProfileDB } from "../utils/db";
 import ThemeToggle from "../components/ThemeToggle";
 
-const LOGO = "https://media.base44.com/images/public/6a17e06edbff878f7a211934/217e87b0f_Screenshot2026-05-25073529.png";
+const LOGO =
+  "https://media.base44.com/images/public/6a17e06edbff878f7a211934/217e87b0f_Screenshot2026-05-25073529.png";
 
 // ---------- Admin Login Form ----------
 function AdminLoginForm({ onBack }) {
-    const navigate = useNavigate();
-    const [form, setForm] = useState({ email: "", password: "" });
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
-        await new Promise(r => setTimeout(r, 600));
-        const result = loginAdmin(form.email, form.password);
-        if (result.success) {
-            navigate("/admin/dashboard");
-        } else {
-            setError(result.error);
-        }
-        setLoading(false);
-    };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    await new Promise((r) => setTimeout(r, 600));
+    const result = loginAdmin(form.email, form.password);
+    if (result.success) {
+      navigate("/admin/dashboard");
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
+  };
 
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <label className="block text-sm font-medium text-slate-200 mb-1">Admin Email</label>
-                <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent" />
-                    <input
-                        type="email"
-                        value={form.email}
-                        onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                        placeholder="admin@ethyra.in"
-                        className="w-full pl-10 pr-4 bg-white/10 border border-white/30 text-white placeholder:text-slate-400 focus:border-accent focus:bg-white/15 h-11 rounded-xl outline-none transition-all"
-                        required
-                    />
-                </div>
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-slate-200 mb-1">Password</label>
-                <div className="relative">
-                    <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent" />
-                    <input
-                        type="password"
-                        value={form.password}
-                        onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-                        placeholder="••••••••"
-                        className="w-full pl-10 pr-4 bg-white/10 border border-white/30 text-white placeholder:text-slate-400 focus:border-accent focus:bg-white/15 h-11 rounded-xl outline-none transition-all"
-                        required
-                    />
-                </div>
-            </div>
-            {error && (
-                <div className="bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl p-3 text-sm">{error}</div>
-            )}
-            <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-primary via-blue-600 to-accent text-white font-semibold h-12 rounded-xl shadow-lg flex items-center justify-center gap-2 hover:opacity-90 transition-all cursor-pointer"
-            >
-                {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Processing...</> : <><ShieldCheck className="w-4 h-4" />Sign In as Admin</>}
-            </button>
-            <button type="button" onClick={onBack} className="w-full text-slate-300 hover:text-white text-sm transition-colors py-1 cursor-pointer">
-                ← Back to Registration
-            </button>
-        </form>
-    );
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-slate-200 mb-1">
+          Admin Email
+        </label>
+        <div className="relative">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent" />
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+            placeholder="admin@ethyra.in"
+            className="w-full pl-10 pr-4 bg-white/10 border border-white/30 text-white placeholder:text-slate-400 focus:border-accent focus:bg-white/15 h-11 rounded-xl outline-none transition-all"
+            required
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-200 mb-1">
+          Password
+        </label>
+        <div className="relative">
+          <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent" />
+          <input
+            type="password"
+            value={form.password}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, password: e.target.value }))
+            }
+            placeholder="••••••••"
+            className="w-full pl-10 pr-4 bg-white/10 border border-white/30 text-white placeholder:text-slate-400 focus:border-accent focus:bg-white/15 h-11 rounded-xl outline-none transition-all"
+            required
+          />
+        </div>
+      </div>
+      {error && (
+        <div className="bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl p-3 text-sm">
+          {error}
+        </div>
+      )}
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-gradient-to-r from-primary via-blue-600 to-accent text-white font-semibold h-12 rounded-xl shadow-lg flex items-center justify-center gap-2 hover:opacity-90 transition-all cursor-pointer"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          <>
+            <ShieldCheck className="w-4 h-4" />
+            Sign In as Admin
+          </>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={onBack}
+        className="w-full text-slate-300 hover:text-white text-sm transition-colors py-1 cursor-pointer"
+      >
+        ← Back to Registration
+      </button>
+    </form>
+  );
 }
 
 // ---------- User Login Form ----------
 function UserLoginForm() {
-    const navigate = useNavigate();
-    const [form, setForm] = useState({ fullName: "", organizationName: "", phone: "", email: "" });
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    fullName: "",
+    organizationName: "",
+    phone: "",
+    email: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-        if (!validateEmail(form.email)) {
-            setError("Please enter a valid email address.");
-            setLoading(false);
-            return;
+    if (!validateEmail(form.email)) {
+      setError("Please enter a valid email address.");
+      setLoading(false);
+      return;
+    }
+
+    await new Promise((r) => setTimeout(r, 600));
+
+    try {
+      let user = UserProfileDB.findByEmail(form.email);
+
+      if (user) {
+        loginUser(user);
+        navigate("/terms");
+      } else {
+        if (!form.fullName.trim()) {
+          setError("Full name is required.");
+          setLoading(false);
+          return;
+        }
+        if (!form.organizationName.trim()) {
+          setError("Organization name is required.");
+          setLoading(false);
+          return;
+        }
+        if (!validatePhone(form.phone)) {
+          setError("Enter a valid 10-digit phone number.");
+          setLoading(false);
+          return;
         }
 
-        await new Promise(r => setTimeout(r, 600));
+        user = UserProfileDB.create({
+          fullName: form.fullName.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim(),
+          organizationName: form.organizationName.trim(),
+          sessionStarted: true,
+          sessionCompleted: false,
+          emailVerified: false,
+          phoneVerified: false,
+          termsAccepted: false,
+        });
+        loginUser(user);
+        navigate("/terms");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    }
+    setLoading(false);
+  };
 
-        try {
-            let user = UserProfileDB.findByEmail(form.email);
+  const fields = [
+    {
+      key: "fullName",
+      label: "Full Name",
+      icon: User,
+      placeholder: "Contact person's full name",
+      type: "text",
+    },
+    {
+      key: "organizationName",
+      label: "Organization Name",
+      icon: Building2,
+      placeholder: "NGO / Organization name",
+      type: "text",
+    },
+    {
+      key: "phone",
+      label: "Phone Number",
+      icon: Phone,
+      placeholder: "10-digit mobile number",
+      type: "tel",
+      maxLength: 10,
+    },
+    {
+      key: "email",
+      label: "Email Address",
+      icon: Mail,
+      placeholder: "your@email.com",
+      type: "email",
+    },
+  ];
 
-            if (user) {
-                loginUser(user);
-                navigate("/terms");
-            } else {
-                if (!form.fullName.trim()) { setError("Full name is required."); setLoading(false); return; }
-                if (!form.organizationName.trim()) { setError("Organization name is required."); setLoading(false); return; }
-                if (!validatePhone(form.phone)) { setError("Enter a valid 10-digit phone number."); setLoading(false); return; }
-
-                user = UserProfileDB.create({
-                    fullName: form.fullName.trim(),
-                    phone: form.phone.trim(),
-                    email: form.email.trim(),
-                    organizationName: form.organizationName.trim(),
-                    sessionStarted: true,
-                    sessionCompleted: false,
-                    emailVerified: false,
-                    phoneVerified: false,
-                    termsAccepted: false,
-                });
-                loginUser(user);
-                navigate("/terms");
-            }
-        } catch (err) {
-            setError("Something went wrong. Please try again.");
-        }
-        setLoading(false);
-    };
-
-    const fields = [
-        { key: "fullName", label: "Full Name", icon: User, placeholder: "Contact person's full name", type: "text" },
-        { key: "organizationName", label: "Organization Name", icon: Building2, placeholder: "NGO / Organization name", type: "text" },
-        { key: "phone", label: "Phone Number", icon: Phone, placeholder: "10-digit mobile number", type: "tel", maxLength: 10 },
-        { key: "email", label: "Email Address", icon: Mail, placeholder: "your@email.com", type: "email" },
-    ];
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            {fields.map(({ key, label, icon: Icon, placeholder, type, maxLength }) => (
-                <div key={key}>
-                    <label className="block text-xs font-semibold text-slate-200 mb-1 uppercase tracking-wider">{label}</label>
-                    <div className="relative">
-                        <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent" />
-                        <input
-                            type={type}
-                            value={form[key]}
-                            maxLength={maxLength}
-                            onChange={e => {
-                                let val = e.target.value;
-                                if (key === "phone") val = val.replace(/\D/g, "").slice(0, 10);
-                                setForm(p => ({ ...p, [key]: val }));
-                            }}
-                            placeholder={placeholder}
-                            className="w-full pl-10 pr-4 bg-white/10 border border-white/30 text-white placeholder:text-slate-400 focus:border-accent focus:bg-white/15 h-11 rounded-xl outline-none transition-all"
-                        />
-                    </div>
-                </div>
-            ))}
-            {error && (
-                <div className="bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl p-3 text-sm">{error}</div>
-            )}
-            <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-primary via-blue-600 to-cyan-500 text-white font-bold h-12 rounded-xl shadow-lg shadow-blue-900/40 flex items-center justify-center gap-2 hover:opacity-95 transition-all cursor-pointer"
-            >
-                {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Processing...</> : <>Get Started <ArrowRight className="w-4 h-4" /></>}
-            </button>
-            <p className="text-center text-xs text-slate-300">Returning user? Just enter your email to continue</p>
-        </form>
-    );
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {fields.map(
+        ({ key, label, icon: Icon, placeholder, type, maxLength }) => (
+          <div key={key}>
+            <label className="block text-xs font-semibold text-slate-200 mb-1 uppercase tracking-wider">
+              {label}
+            </label>
+            <div className="relative">
+              <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent" />
+              <input
+                type={type}
+                value={form[key]}
+                maxLength={maxLength}
+                onChange={(e) => {
+                  let val = e.target.value;
+                  if (key === "phone")
+                    val = val.replace(/\D/g, "").slice(0, 10);
+                  setForm((p) => ({ ...p, [key]: val }));
+                }}
+                placeholder={placeholder}
+                className="w-full pl-10 pr-4 bg-white/10 border border-white/30 text-white placeholder:text-slate-400 focus:border-accent focus:bg-white/15 h-11 rounded-xl outline-none transition-all"
+              />
+            </div>
+          </div>
+        ),
+      )}
+      {error && (
+        <div className="bg-red-500/20 border border-red-500/30 text-red-300 rounded-xl p-3 text-sm">
+          {error}
+        </div>
+      )}
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-gradient-to-r from-primary via-blue-600 to-cyan-500 text-white font-bold h-12 rounded-xl shadow-lg shadow-blue-900/40 flex items-center justify-center gap-2 hover:opacity-95 transition-all cursor-pointer"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          <>
+            Get Started <ArrowRight className="w-4 h-4" />
+          </>
+        )}
+      </button>
+      <p className="text-center text-xs text-slate-300">
+        Returning user? Just enter your email to continue
+      </p>
+    </form>
+  );
 }
 
 // ---------- Login Tabs ----------
 function LoginTabs() {
-    const [showAdmin, setShowAdmin] = useState(false);
-    return (
-        <div>
-            {showAdmin ? (
-                <AdminLoginForm onBack={() => setShowAdmin(false)} />
-            ) : (
-                <>
-                    <UserLoginForm />
-                    <div className="mt-6 pt-5 border-t border-white/15">
-                        <button
-                            onClick={() => setShowAdmin(true)}
-                            className="w-full bg-white/5 hover:bg-white/15 border border-white/20 text-slate-200 hover:text-white rounded-xl h-10 flex items-center justify-center gap-2 text-sm transition-all cursor-pointer font-medium"
-                        >
-                            <ShieldCheck className="w-4 h-4 text-cyan-400" />Admin Login
-                        </button>
-                        <p className="text-center text-xs text-slate-400 mt-2">Restricted access for ETHYRA administrators only</p>
-                    </div>
-                </>
-            )}
-        </div>
-    );
+  const [showAdmin, setShowAdmin] = useState(false);
+  return (
+    <div>
+      {showAdmin ? (
+        <AdminLoginForm onBack={() => setShowAdmin(false)} />
+      ) : (
+        <>
+          <UserLoginForm />
+          <div className="mt-6 pt-5 border-t border-white/15">
+            <button
+              onClick={() => setShowAdmin(true)}
+              className="w-full bg-white/5 hover:bg-white/15 border border-white/20 text-slate-200 hover:text-white rounded-xl h-10 flex items-center justify-center gap-2 text-sm transition-all cursor-pointer font-medium"
+            >
+              <ShieldCheck className="w-4 h-4 text-cyan-400" />
+              Admin Login
+            </button>
+            <p className="text-center text-xs text-slate-400 mt-2">
+              Restricted access for ETHYRA administrators only
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function DodgeLogo({ src, alt, className, style }) {
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const deltaX = centerX - e.clientX;
+    const deltaY = centerY - e.clientY;
+    
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    if (distance < 150) {
+      const moveX = (deltaX / distance) * 25;
+      const moveY = (deltaY / distance) * 25;
+      setPosition({ x: moveX, y: moveY });
+    } else {
+      setPosition({ x: 0, y: 0 });
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setPosition({ x: 0, y: 0 });
+  };
+
+  return (
+    <motion.div
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      animate={{ x: position.x, y: position.y }}
+      transition={{ type: "spring", stiffness: 150, damping: 10 }}
+      className="inline-block relative z-50 w-full"
+    >
+      <img src={src} alt={alt} className={className} style={style} />
+    </motion.div>
+  );
 }
 
 // ---------- Main Login Page ----------
 export default function Login() {
-    const features = [
-        "61-Question Comprehensive Assessment",
-        "6 Critical Compliance Sections",
-        "Instant Score & Rating",
-        "Executive PDF Report Delivery",
-        "Enterprise-Grade Analytics",
-    ];
+  const features = [
+    "57 Diagnostic & Compliance Criteria",
+    "8 Critical Readiness & Governance Pillars",
+    "Instant Score & Weighted Rating",
+    "Executive PDF Report Delivery",
+    "Enterprise-Grade Analytics",
+  ];
 
-    const contactInfo = [
-        { label: "WEB", value: "explore.ethyra.in", icon: Globe },
-        { label: "EMAIL", value: "connect@ethyra.in", icon: AtSign },
-        { label: "PHONE", value: "+91 8610904242", icon: PhoneCall },
-    ];
+  const contactInfo = [
+    { label: "WEB", value: "explore.ethyra.in", icon: Globe },
+    { label: "EMAIL", value: "connect@ethyra.in", icon: AtSign },
+    { label: "PHONE", value: "+91 8610904242", icon: PhoneCall },
+  ];
 
-    return (
-        <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-[#0a1628] via-[#0f2347] to-[#1e3a8a] text-white">
-            {/* Top Bar for Theme Toggle */}
-            <div className="absolute top-4 right-4 z-50">
-                <ThemeToggle />
-            </div>
+  return (
+    <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-[#0a1628] via-[#0f2347] to-[#1e3a8a] text-white">
+      {/* Top Bar for Theme Toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
 
-            {/* LEFT PANEL */}
-            <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0a1628] via-[#0d2254] to-[#1e3a8a] relative overflow-hidden flex-col items-center justify-center p-12">
-                <motion.div
-                    animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
-                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute top-10 right-10 w-64 h-64 rounded-full bg-accent/15 blur-3xl"
-                />
-                <motion.div
-                    animate={{ scale: [1, 1.3, 1], rotate: [0, -90, 0] }}
-                    transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute bottom-10 left-10 w-80 h-80 rounded-full bg-primary/20 blur-3xl"
-                />
+      {/* LEFT PANEL */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0a1628] via-[#0d2254] to-[#1e3a8a] relative overflow-hidden flex-col items-center justify-center p-12">
+        <motion.div
+          animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-10 right-10 w-64 h-64 rounded-full bg-accent/15 blur-3xl"
+        />
+        <motion.div
+          animate={{ scale: [1, 1.3, 1], rotate: [0, -90, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-10 left-10 w-80 h-80 rounded-full bg-primary/20 blur-3xl"
+        />
 
-                <div className="relative z-10 max-w-md text-center">
-                    <img src={LOGO} alt="ETHYRA" className="h-20 mx-auto mb-6 drop-shadow-2xl" style={{ mixBlendMode: "screen" }} />
-                    <h1 className="text-4xl font-extrabold text-white mb-2 tracking-tight">NGO Readiness</h1>
-                    <h2 className="text-2xl font-semibold text-cyan-400 mb-4">Assessment Platform</h2>
-                    <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mx-auto mb-6" />
-                    <p className="text-slate-200 text-sm leading-relaxed mb-8">
-                        Professional due diligence assessments for NGOs seeking CSR partnerships and institutional funding.
-                    </p>
+        <div className="relative z-10 max-w-md text-center">
+          <DodgeLogo
+            src={LOGO}
+            alt="ETHYRA"
+            className="h-20 mx-auto mb-6 drop-shadow-2xl"
+            style={{ mixBlendMode: "screen" }}
+          />
+          <h1 className="text-4xl font-extrabold text-white mb-2 tracking-tight">
+            NGO Readiness
+          </h1>
+          <h2 className="text-2xl font-semibold text-cyan-400 mb-4">
+            Assessment Platform
+          </h2>
+          <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mx-auto mb-6" />
+          <p className="text-slate-200 text-sm leading-relaxed mb-8">
+            Professional due diligence assessments for NGOs seeking CSR
+            partnerships and institutional funding.
+          </p>
 
-                    <div className="space-y-3 text-left">
-                        {features.map((f, i) => (
-                            <div key={i} className="flex items-center gap-3">
-                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-400/20 border border-cyan-400/40 flex items-center justify-center">
-                                    <div className="w-2 h-2 rounded-full bg-cyan-400" />
-                                </div>
-                                <span className="text-slate-100 text-sm font-medium">{f}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3 mt-10 pt-6 border-t border-white/15">
-                        {contactInfo.map(({ label, value, icon: Icon }) => (
-                            <div key={label} className="text-center">
-                                <Icon className="w-4 h-4 text-cyan-400 mx-auto mb-1" />
-                                <p className="text-xs text-slate-300 font-bold">{label}</p>
-                                <p className="text-xs text-white font-medium break-all">{value}</p>
-                            </div>
-                        ))}
-                    </div>
+          <div className="space-y-3 text-left">
+            {features.map((f, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-400/20 border border-cyan-400/40 flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-cyan-400" />
                 </div>
-            </div>
+                <span className="text-slate-100 text-sm font-medium">{f}</span>
+              </div>
+            ))}
+          </div>
 
-            {/* RIGHT PANEL */}
-            <div className="flex-1 bg-gradient-to-br from-[#0f2347] via-[#1e3a8a] to-[#0a1628] relative overflow-hidden flex items-center justify-center p-6 min-h-screen lg:min-h-0">
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                    className="relative z-10 w-full max-w-md"
-                >
-                    {/* Mobile Logo */}
-                    <div className="lg:hidden text-center mb-8">
-                        <img src={LOGO} alt="ETHYRA" className="h-14 mx-auto mb-3" style={{ mixBlendMode: "screen" }} />
-                        <h1 className="text-3xl font-bold text-white">ETHYRA</h1>
-                        <p className="text-cyan-400 text-sm">NGO Readiness Assessment Platform</p>
-                    </div>
-
-                    {/* Glass Card */}
-                    <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl">
-                        <h2 className="text-2xl font-bold text-white mb-1">Get Started</h2>
-                        <p className="text-slate-300 text-sm mb-6">Register your NGO for assessment</p>
-                        <LoginTabs />
-                    </div>
-                    <p className="text-center text-xs text-slate-400 mt-4">Secure • Encrypted • Professional</p>
-                </motion.div>
-            </div>
+          <div className="grid grid-cols-3 gap-3 mt-10 pt-6 border-t border-white/15">
+            {contactInfo.map(({ label, value, icon: Icon }) => (
+              <div key={label} className="text-center">
+                <Icon className="w-4 h-4 text-cyan-400 mx-auto mb-1" />
+                <p className="text-xs text-slate-300 font-bold">{label}</p>
+                <p className="text-xs text-white font-medium break-all">
+                  {value}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
-    );
+      </div>
+
+      {/* RIGHT PANEL */}
+      <div className="flex-1 bg-gradient-to-br from-[#0f2347] via-[#1e3a8a] to-[#0a1628] relative overflow-hidden flex items-center justify-center p-6 min-h-screen lg:min-h-0">
+        <motion.div
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="relative z-10 w-full max-w-md max-h-screen overflow-y-auto no-scrollbar pb-10"
+        >
+          {/* Mobile Logo */}
+          <div className="lg:hidden text-center mb-8">
+            <DodgeLogo
+              src={LOGO}
+              alt="ETHYRA"
+              className="h-14 mx-auto mb-3"
+              style={{ mixBlendMode: "screen" }}
+            />
+            <h1 className="text-3xl font-bold text-white">ETHYRA</h1>
+            <p className="text-cyan-400 text-sm">
+              NGO Readiness Assessment Platform
+            </p>
+          </div>
+
+          {/* Glass Card */}
+          <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl">
+            <h2 className="text-2xl font-bold text-white mb-1">Get Started</h2>
+            <p className="text-slate-300 text-sm mb-6">
+              Register your NGO for assessment
+            </p>
+            <LoginTabs />
+          </div>
+          <p className="text-center text-xs text-slate-400 mt-4">
+            Secure • Encrypted • Professional
+          </p>
+        </motion.div>
+      </div>
+    </div>
+  );
 }

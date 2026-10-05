@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { getUserSession, logoutUser } from "../utils/authUtils";
 import { AssessmentResultDB, PaymentRecordDB, AssessmentAnswerDB } from "../utils/db";
-import { getRatingCategory, QUESTIONS } from "../utils/questions";
+import { QUESTIONS, getRatingCategory } from "../utils/questions";
 import { buildAssessmentDoc } from "../utils/reportPdf";
 import ThemeToggle from "../components/ThemeToggle";
 
@@ -81,16 +81,17 @@ export default function Results() {
         );
     }
 
-    const pct = Math.round(result.percentage ?? 0);
-    const rating = getRatingCategory(pct);
+    const rating = getRatingCategory(result.percentage || 0);
+    const pct = Math.round(result.percentage || 0);
     const catScores = result.categoryScores ?? {};
 
     const ratingColor = {
         green: "bg-green-50 border-green-300 text-green-800 dark:bg-emerald-950/60 dark:border-emerald-700/60 dark:text-emerald-200",
+        emerald: "bg-emerald-50 border-emerald-300 text-emerald-800 dark:bg-emerald-950/60 dark:border-emerald-700/60 dark:text-emerald-200",
         blue: "bg-blue-50 border-blue-300 text-blue-800 dark:bg-blue-950/60 dark:border-blue-700/60 dark:text-blue-200",
         amber: "bg-amber-50 border-amber-300 text-amber-800 dark:bg-amber-950/60 dark:border-amber-700/60 dark:text-amber-200",
         red: "bg-red-50 border-red-300 text-red-800 dark:bg-rose-950/60 dark:border-rose-700/60 dark:text-rose-200",
-    }[rating.color];
+    }[rating?.color || "blue"] || "bg-blue-50 border-blue-300 text-blue-800 dark:bg-blue-950/60 dark:border-blue-700/60 dark:text-blue-200";
 
     const pieData = [
         { name: "Scored", value: result.totalScore },
@@ -346,18 +347,27 @@ export default function Results() {
 
                         {/* Question Audit */}
                         <div className="bg-white dark:bg-[#0f2342]/90 border border-blue-100 dark:border-blue-500/30 rounded-2xl p-5 shadow-sm">
-                            <h3 className="text-sm font-bold text-slate-700 dark:text-white mb-4">Full Question Audit (61 Questions)</h3>
+                            <h3 className="text-sm font-bold text-slate-700 dark:text-white mb-4">Diagnostic Audit Trail ({QUESTIONS.length} Criteria)</h3>
                             <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-thin pr-1">
                                 {QUESTIONS.map((q) => {
                                     const ans = answers.find(a => a.questionId === q.id);
-                                    const color = ans?.selectedAnswer === "Yes" ? "text-green-600 bg-green-50 dark:bg-emerald-950/60 dark:text-emerald-300" : ans?.selectedAnswer === "No" ? "text-red-600 bg-red-50 dark:bg-rose-950/60 dark:text-rose-300" : "text-amber-600 bg-amber-50 dark:bg-amber-950/60 dark:text-amber-300";
                                     return (
-                                        <div key={q.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-blue-900/30">
-                                            <span className="text-xs text-slate-400 font-mono w-6 flex-shrink-0 mt-0.5">#{q.slNo}</span>
-                                            <p className="text-xs text-slate-700 dark:text-slate-200 flex-1">{q.text}</p>
-                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-md flex-shrink-0 ${color}`}>
-                                                {ans?.selectedAnswer || "—"}
-                                            </span>
+                                        <div key={q.id} className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-blue-900/30 border border-slate-100 dark:border-blue-900/30">
+                                            <span className="text-xs text-slate-400 font-mono w-8 flex-shrink-0 mt-0.5">#{q.qNo || q.slNo}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-medium text-slate-800 dark:text-slate-100 leading-snug">{q.text}</p>
+                                                <p className="text-[11px] text-slate-400 dark:text-blue-300 mt-0.5">{q.category}</p>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-blue-800/60 max-w-[140px] truncate">
+                                                    {ans?.selectedAnswer || "Not answered"}
+                                                </span>
+                                                {ans?.score !== undefined && ans?.score !== "NA" && (
+                                                    <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                                                        +{ans.score}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })}

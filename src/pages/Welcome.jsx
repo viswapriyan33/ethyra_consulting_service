@@ -56,9 +56,9 @@ export default function Welcome() {
                             <p className="text-blue-100 text-sm">{session?.organizationName}</p>
                             <div className="flex flex-wrap gap-3 mt-4">
                                 {[
-                                    { icon: ClipboardList, label: "61 Questions" },
-                                    { icon: Clock, label: "~30-45 minutes" },
-                                    { icon: Award, label: "6 Sections" },
+                                    { icon: ClipboardList, label: "57 Criteria" },
+                                    { icon: Clock, label: "~20-30 minutes" },
+                                    { icon: Award, label: "8 Pillars" },
                                 ].map(({ icon: Icon, label }) => (
                                     <div key={label} className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-medium text-white">
                                         <Icon className="w-3.5 h-3.5" />{label}
@@ -80,9 +80,9 @@ export default function Welcome() {
                         </div>
                         <div className="space-y-2">
                             {[
-                                { dot: "bg-green-500", text: "Yes — Your organization complies / has this in place" },
-                                { dot: "bg-red-500", text: "No — Your organization does not have this" },
-                                { dot: "bg-amber-500", text: "NA — Not applicable to your organization" },
+                                { dot: "bg-blue-500", text: "Select Best Fit — Choose the option accurately reflecting your current status" },
+                                { dot: "bg-indigo-500", text: "Multiple Options — Each question features tailored response choices (0–4 marks)" },
+                                { dot: "bg-slate-400", text: "N/A Option — Select Not Applicable when a specific statutory area does not apply" },
                             ].map(({ dot, text }) => (
                                 <div key={text} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-200">
                                     <div className={`w-2.5 h-2.5 rounded-full ${dot} flex-shrink-0 mt-1`} />
@@ -96,13 +96,13 @@ export default function Welcome() {
                         className="bg-white dark:bg-[#0f2342]/90 border border-blue-100 dark:border-blue-500/30 rounded-2xl p-5 shadow-sm">
                         <div className="flex items-center gap-2 mb-4">
                             <AlertCircle className="w-5 h-5 text-amber-500 dark:text-amber-400" />
-                            <h3 className="font-bold text-slate-800 dark:text-white">Scoring System</h3>
+                            <h3 className="font-bold text-slate-800 dark:text-white">Scoring & Weighting</h3>
                         </div>
                         <div className="space-y-2">
                             {[
-                                { dot: "bg-blue-500", text: "Mandatory — Pass/Fail required for eligibility" },
-                                { dot: "bg-indigo-500", text: "Normal — Yes earns 2 points, No earns 0" },
-                                { dot: "bg-slate-400", text: "Final Rating — Based on total percentage score" },
+                                { dot: "bg-cyan-500", text: "Weighted Pillars — Each pillar contributes 10% to 20% to the total score" },
+                                { dot: "bg-teal-500", text: "Readiness Levels — Scored out of 100 with actionable risk classifications" },
+                                { dot: "bg-emerald-500", text: "Diagnostic Trail — Executive PDF report includes corrective action guidance" },
                             ].map(({ dot, text }) => (
                                 <div key={text} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-200">
                                     <div className={`w-2.5 h-2.5 rounded-full ${dot} flex-shrink-0 mt-1`} />

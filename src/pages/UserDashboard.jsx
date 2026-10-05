@@ -10,7 +10,7 @@ import {
 } from "recharts";
 import { getUserSession, logoutUser } from "../utils/authUtils";
 import { AssessmentResultDB, PaymentRecordDB } from "../utils/db";
-import { getRatingCategory, CHART_COLORS } from "../utils/questions";
+import { CHART_COLORS } from "../utils/questions";
 import { buildAssessmentDoc } from "../utils/reportPdf";
 import ThemeToggle from "../components/ThemeToggle";
 
@@ -200,8 +200,7 @@ export default function UserDashboard() {
                                     const pay = getPaymentForAttempt(r.attemptId);
                                     const isVerified = pay?.status === "success";
                                     const isPending = pay?.status === "pending";
-                                    const pct = Math.round(r.percentage ?? 0);
-                                    const rating = getRatingCategory(pct);
+                                    const rating = { label: r.rating || "Unknown", color: r.color || "blue" };
 
                                     return (
                                         <motion.div key={r.id}
