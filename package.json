@@ -1,8 +1,20 @@
 {
   "name": "ethyra-clone",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
+  "description": "This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.",
+  "homepage": "https://github.com/viswapriyan33/ethyra_consulting_service#readme",
+  "bugs": {
+    "url": "https://github.com/viswapriyan33/ethyra_consulting_service/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/viswapriyan33/ethyra_consulting_service.git"
+  },
+  "license": "ISC",
+  "author": "",
   "type": "module",
+  "main": "postcss.config.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -19,12 +31,15 @@
     "framer-motion": "^13.1.0",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.31.0",
-    "nodemailer": "^9.0.5",
+    "nodemailer": "^10.1.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",
     "recharts": "^3.10.1",
     "tailwind-merge": "^3.6.0"
+  },
+  "overrides": {
+    "postcss-selector-parser": "^7.1.6"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

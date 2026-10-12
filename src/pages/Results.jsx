@@ -156,34 +156,12 @@ export default function Results() {
             </header>
 
             <main className="max-w-5xl mx-auto px-4 py-8 pb-16 space-y-6">
-                {/* Eligibility Banner */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                    className={`rounded-2xl border p-4 flex items-center gap-3 ${result.isEligible ? "bg-green-50 border-green-300 dark:bg-emerald-950/60 dark:border-emerald-700/60" : "bg-red-50 border-red-300 dark:bg-rose-950/60 dark:border-rose-700/60"}`}
-                >
-                    {result.isEligible ? (
-                        <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-emerald-400 flex-shrink-0" />
-                    ) : (
-                        <XCircle className="w-6 h-6 text-red-600 dark:text-rose-400 flex-shrink-0" />
-                    )}
-                    <div>
-                        <p className={`font-bold ${result.isEligible ? "text-green-800 dark:text-emerald-200" : "text-red-800 dark:text-rose-200"}`}>
-                            {result.isEligible ? "ELIGIBLE — All mandatory criteria passed." : `NOT ELIGIBLE — ${result.mandatoryFailed?.length || 0} mandatory criteria failed.`}
-                        </p>
-                        {!result.isEligible && result.mandatoryFailed?.length > 0 && (
-                            <p className="text-red-600 dark:text-rose-300 text-xs mt-0.5">{result.mandatoryFailed.slice(0, 2).join("; ")}{result.mandatoryFailed.length > 2 ? " ..." : ""}</p>
-                        )}
-                    </div>
-                </motion.div>
-
                 {/* Score Cards */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                    className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <ScoreCard label="Total Score" value={`${result.totalScore}/${result.maxScore}`} colorClass="text-primary dark:text-cyan-400" />
                     <ScoreCard label="Percentage" value={`${pct}%`} colorClass={pct >= 70 ? "text-green-600 dark:text-emerald-400" : pct >= 50 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-rose-400"} />
                     <ScoreCard label="Final Rating" value={result.performanceLevel} colorClass={pct >= 70 ? "text-green-600 dark:text-emerald-400" : pct >= 50 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-rose-400"} />
-                    <ScoreCard label="Risk Level" value={result.riskLevel}
-                        colorClass={result.riskLevel === "Low" ? "text-green-600 dark:text-emerald-400" : result.riskLevel === "Medium" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-rose-400"}
-                    />
                 </motion.div>
 
                 {/* Rating Banner */}

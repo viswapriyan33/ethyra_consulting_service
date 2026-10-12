@@ -1,13 +1,45 @@
 // Simple in-memory "database" that simulates Base44 BaaS
 // In production this would be a real backend
 
-const DB = {
-    UserProfile: [],
-    AssessmentAnswer: [],
-    AssessmentResult: [],
-    PaymentRecord: [],
-    EmailLog: [],
-};
+const STORAGE_KEY = "ETHYRA_DB_STORE";
+
+function initDB() {
+    const fallback = {
+        UserProfile: [],
+        AssessmentAnswer: [],
+        AssessmentResult: [],
+        PaymentRecord: [],
+        EmailLog: [],
+    };
+    if (typeof window === "undefined" || !window.localStorage) return fallback;
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            return {
+                UserProfile: Array.isArray(parsed?.UserProfile) ? parsed.UserProfile : [],
+                AssessmentAnswer: Array.isArray(parsed?.AssessmentAnswer) ? parsed.AssessmentAnswer : [],
+                AssessmentResult: Array.isArray(parsed?.AssessmentResult) ? parsed.AssessmentResult : [],
+                PaymentRecord: Array.isArray(parsed?.PaymentRecord) ? parsed.PaymentRecord : [],
+                EmailLog: Array.isArray(parsed?.EmailLog) ? parsed.EmailLog : [],
+            };
+        }
+    } catch (e) {
+        console.warn("Could not parse DB from localStorage:", e);
+    }
+    return fallback;
+}
+
+const DB = initDB();
+
+function saveDB() {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+    } catch (e) {
+        console.warn("Could not save DB to localStorage:", e);
+    }
+}
 
 const subscribers = {};
 
@@ -30,6 +62,7 @@ export function createRecord(entity, data) {
         updated_date: new Date().toISOString(),
     };
     DB[entity].push(record);
+    saveDB();
     notify(entity, DB[entity]);
     return record;
 }
@@ -38,6 +71,7 @@ export function updateRecord(entity, id, updates) {
     const idx = DB[entity].findIndex((r) => r.id === id);
     if (idx === -1) return null;
     DB[entity][idx] = { ...DB[entity][idx], ...updates, updated_date: new Date().toISOString() };
+    saveDB();
     notify(entity, DB[entity]);
     return DB[entity][idx];
 }

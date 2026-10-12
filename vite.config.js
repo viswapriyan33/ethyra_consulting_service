@@ -21,7 +21,7 @@ function parseJsonBody(req) {
 }
 
 function getTransporter(env) {
-  const user = (env.GMAIL_USER || process.env.GMAIL_USER || '').trim();
+  const user = (env.GMAIL_USER || process.env.GMAIL_USER || 'connect@ethyra.in').trim();
   const rawPass = (env.GMAIL_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD || '').trim();
   const pass = rawPass.replace(/\s+/g, '');
 
@@ -35,6 +35,9 @@ function getTransporter(env) {
       user,
       pass,
     },
+    connectionTimeout: 3500,
+    greetingTimeout: 3500,
+    socketTimeout: 4000,
   });
 
   return { transporter, user };
