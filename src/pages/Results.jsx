@@ -14,8 +14,7 @@ import { AssessmentResultDB, PaymentRecordDB, AssessmentAnswerDB } from "../util
 import { QUESTIONS, getRatingCategory } from "../utils/questions";
 import { buildAssessmentDoc } from "../utils/reportPdf";
 import ThemeToggle from "../components/ThemeToggle";
-
-const LOGO = "https://media.base44.com/images/public/6a17e06edbff878f7a211934/217e87b0f_Screenshot2026-05-25073529.png";
+import EthyraLogo from "../components/EthyraLogo";
 
 function ScoreCard({ label, value, sub, colorClass }) {
     return (
@@ -135,7 +134,7 @@ export default function Results() {
             {/* Header */}
             <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#0a1628]/90 backdrop-blur-md border-b border-blue-100 dark:border-blue-900/40 shadow-sm transition-colors">
                 <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-                    <img src={LOGO} alt="ETHYRA" className="h-8" />
+                    <EthyraLogo className="h-8" />
                     <h1 className="text-sm font-bold text-slate-700 dark:text-white">Assessment Results Dashboard</h1>
                     <div className="flex items-center gap-2">
                         {isUnlocked && (

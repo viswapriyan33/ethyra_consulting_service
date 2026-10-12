@@ -14,10 +14,8 @@ import { isAdminLoggedIn, logoutAdmin } from "../utils/authUtils";
 import { UserProfileDB, AssessmentResultDB, PaymentRecordDB, EmailLogDB } from "../utils/db";
 import { CATEGORIES, QUESTIONS } from "../utils/questions";
 import { buildAssessmentDoc } from "../utils/reportPdf";
-import { dispatchVerifiedReport } from "../utils/emailService";
 import ThemeToggle from "../components/ThemeToggle";
-
-const LOGO = "https://media.base44.com/images/public/6a17e06edbff878f7a211934/217e87b0f_Screenshot2026-05-25073529.png";
+import EthyraLogo from "../components/EthyraLogo";
 
 // ---------- Verification Modal ----------
 function VerifyModal({ payment, onConfirm, onCancel, loading, verifyProgress }) {
@@ -329,7 +327,7 @@ export default function AdminDashboard() {
             <header className="sticky top-0 z-40 bg-white/90 dark:bg-[#0a1628]/90 backdrop-blur-md border-b border-blue-100 dark:border-blue-900/40 shadow-sm transition-colors">
                 <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img src={LOGO} alt="ETHYRA" className="h-10" />
+                        <EthyraLogo className="h-9" />
                         <div>
                             <p className="text-sm font-bold text-slate-800 dark:text-white">Admin Dashboard</p>
                             <p className="text-xs text-slate-500 dark:text-blue-200 flex items-center gap-1"><Shield className="w-3 h-3 text-cyan-400" />ETHYRA Impact Verification Control</p>

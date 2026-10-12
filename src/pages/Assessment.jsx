@@ -19,9 +19,7 @@ import {
 } from "../utils/questions";
 import { AssessmentAnswerDB, AssessmentResultDB } from "../utils/db";
 import ThemeToggle from "../components/ThemeToggle";
-
-const LOGO =
-  "https://media.base44.com/images/public/6a17e06edbff878f7a211934/217e87b0f_Screenshot2026-05-25073529.png";
+import EthyraLogo from "../components/EthyraLogo";
 
 function generateAttemptId() {
   return "att-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
@@ -141,11 +139,17 @@ export default function Assessment() {
     navigate("/login");
   };
 
-  const catProgress = CATEGORIES.map((cat) => {
+  const catProgress = CATEGORIES.map((cat, idx) => {
     const qInCat = QUESTIONS.filter((q) => q.category === cat.name);
     const answered = qInCat.filter((q) => answers[q.id] !== undefined).length;
-    return { name: cat.name, answered, total: qInCat.length };
+    const isCurrent = currentQ?.category === cat.name;
+    const isComplete = answered === qInCat.length && qInCat.length > 0;
+    const pct = qInCat.length > 0 ? Math.round((answered / qInCat.length) * 100) : 0;
+    return { name: cat.name, answered, total: qInCat.length, isCurrent, isComplete, pct, index: idx + 1 };
   });
+
+  const completedSections = catProgress.filter((c) => c.isComplete).length;
+  const totalAnswered = Object.keys(answers).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/50 dark:bg-gradient-to-br dark:from-[#0a1628] dark:via-[#0f2347] dark:to-[#1e3a8a] text-slate-800 dark:text-white transition-colors duration-300">
@@ -153,7 +157,7 @@ export default function Assessment() {
       <header className="sticky top-0 z-50 bg-white/95 dark:bg-[#0a1628]/95 backdrop-blur-md border-b border-blue-100 dark:border-blue-900/40 shadow-sm transition-colors">
         <div className="max-w-3xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between mb-2">
-            <img src={LOGO} alt="ETHYRA" className="h-8" />
+            <EthyraLogo className="h-8" />
             <div className="flex items-center gap-2">
               {!showFeedback && (
                 <span
@@ -263,13 +267,9 @@ export default function Assessment() {
                   >
                     {currentQ.category}
                   </span>
-                  {currentQ.type === "Diagnostic" ? (
+                  {currentQ.type === "Diagnostic" && (
                     <span className="text-xs px-3 py-1 rounded-full border font-bold bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700/60">
                       ✦ Diagnostic Question
-                    </span>
-                  ) : (
-                    <span className="text-xs px-3 py-1 rounded-full border font-medium bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-cyan-300 dark:border-blue-700/60">
-                      Weightage: {currentQ.weightage}%
                     </span>
                   )}
                 </div>
@@ -320,28 +320,6 @@ export default function Assessment() {
                       </div>
 
                       <div className="shrink-0 flex items-center gap-2">
-                        {opt.score !== "NA" && typeof opt.score === "number" && (
-                          <span
-                            className={`text-xs px-2.5 py-1 rounded-full font-bold ${
-                              selected
-                                ? "bg-white/20 text-white"
-                                : "bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-cyan-300"
-                            }`}
-                          >
-                            {opt.score} {opt.score === 1 ? "mark" : "marks"}
-                          </span>
-                        )}
-                        {opt.score === "NA" && (
-                          <span
-                            className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                              selected
-                                ? "bg-white/20 text-white"
-                                : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300"
-                            }`}
-                          >
-                            N/A
-                          </span>
-                        )}
                         {selected && <CheckCircle2 className="w-5 h-5 text-white shrink-0" />}
                       </div>
                     </motion.button>
@@ -392,34 +370,95 @@ export default function Assessment() {
           </div>
         )}
 
-        {/* Category mini-progress */}
-        <div className="mt-8 bg-white dark:bg-[#0f2342]/90 rounded-2xl border border-blue-100 dark:border-blue-500/30 p-4 shadow-sm">
-          <h3 className="text-xs font-bold text-slate-500 dark:text-blue-200 uppercase tracking-wide mb-3">
-            Section Progress
-          </h3>
-          <div className="grid sm:grid-cols-2 gap-2.5">
-            {catProgress.map((cat) => (
-              <div key={cat.name} className="flex items-center gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between mb-0.5">
-                    <span className="text-xs text-slate-600 dark:text-slate-200 truncate max-w-[170px] font-medium">
-                      {cat.name}
-                    </span>
-                    <span className="text-xs text-slate-400 dark:text-blue-300 font-mono">
-                      {cat.answered}/{cat.total}
-                    </span>
+        {/* Category Progress - Premium Redesigned UI */}
+        <div className="mt-10 bg-white/95 dark:bg-[#0f2347]/90 backdrop-blur-xl rounded-3xl border border-blue-100/90 dark:border-blue-900/50 p-6 sm:p-7 shadow-xl shadow-blue-950/5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-blue-900/40">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800 dark:text-white tracking-wide uppercase">
+                  Section Progress
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-blue-300 font-medium">
+                  Readiness Pillars ({completedSections} of {CATEGORIES.length} completed)
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-cyan-300 border border-blue-200/60 dark:border-blue-800/60">
+                {totalAnswered} / {totalQ} Answered
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {catProgress.map((cat) => {
+              return (
+                <div
+                  key={cat.name}
+                  className={`relative p-3.5 rounded-2xl border transition-all duration-300 ${
+                    cat.isCurrent
+                      ? "bg-gradient-to-r from-blue-50/90 to-cyan-50/70 dark:from-blue-950/70 dark:to-cyan-950/40 border-blue-400/80 dark:border-cyan-400/80 shadow-md shadow-blue-500/10 ring-1 ring-blue-400/50"
+                      : cat.isComplete
+                      ? "bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-800/40"
+                      : "bg-slate-50/60 dark:bg-[#0a1628]/60 border-slate-200/60 dark:border-blue-950/60 hover:border-slate-300 dark:hover:border-blue-800/50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-extrabold shrink-0 ${
+                          cat.isComplete
+                            ? "bg-emerald-500 text-white"
+                            : cat.isCurrent
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "bg-slate-200 dark:bg-blue-900/60 text-slate-700 dark:text-blue-200"
+                        }`}
+                      >
+                        {cat.index}
+                      </span>
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug">
+                        {cat.name}
+                      </span>
+                    </div>
+
+                    <div className="shrink-0 flex items-center gap-1.5">
+                      {cat.isComplete ? (
+                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 bg-emerald-100/70 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full">
+                          ✓ {cat.answered}/{cat.total}
+                        </span>
+                      ) : (
+                        <span
+                          className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                            cat.isCurrent
+                              ? "bg-blue-600 text-white"
+                              : "bg-white dark:bg-blue-950/80 text-slate-600 dark:text-blue-300 border border-slate-200/60 dark:border-blue-800/40"
+                          }`}
+                        >
+                          {cat.answered}/{cat.total}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+
+                  {/* Progress bar */}
+                  <div className="h-2 w-full bg-slate-200/70 dark:bg-slate-800/80 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 rounded-full transition-all"
-                      style={{
-                        width: `${cat.total > 0 ? (cat.answered / cat.total) * 100 : 0}%`,
-                      }}
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        cat.isComplete
+                          ? "bg-gradient-to-r from-emerald-500 to-teal-400"
+                          : cat.isCurrent
+                          ? "bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-400"
+                          : "bg-gradient-to-r from-blue-500 to-cyan-500"
+                      }`}
+                      style={{ width: `${cat.pct}%` }}
                     />
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </main>

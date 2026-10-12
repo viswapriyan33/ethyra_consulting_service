@@ -13,8 +13,7 @@ import { AssessmentResultDB, PaymentRecordDB } from "../utils/db";
 import { CHART_COLORS } from "../utils/questions";
 import { buildAssessmentDoc } from "../utils/reportPdf";
 import ThemeToggle from "../components/ThemeToggle";
-
-const LOGO = "https://media.base44.com/images/public/6a17e06edbff878f7a211934/217e87b0f_Screenshot2026-05-25073529.png";
+import EthyraLogo from "../components/EthyraLogo";
 
 export default function UserDashboard() {
     const navigate = useNavigate();
@@ -103,7 +102,7 @@ export default function UserDashboard() {
             {/* Header */}
             <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#0a1628]/90 backdrop-blur-md border-b border-blue-100 dark:border-blue-900/40 shadow-sm transition-colors">
                 <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-                    <img src={LOGO} alt="ETHYRA" className="h-10" />
+                    <EthyraLogo className="h-9" />
                     <div className="text-center hidden sm:block">
                         <p className="text-sm font-bold text-slate-800 dark:text-white">My Dashboard</p>
                         <p className="text-xs text-slate-500 dark:text-blue-200">{session?.organizationName}</p>

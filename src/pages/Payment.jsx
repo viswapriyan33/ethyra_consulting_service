@@ -7,8 +7,7 @@ import { PaymentRecordDB, UserProfileDB } from "../utils/db";
 import { sendPaymentNotifications } from "../utils/paymentNotificationService";
 import ThemeToggle from "../components/ThemeToggle";
 import paymentQrImg from "../assets/ethyra_upi_qr.png";
-
-const LOGO = "https://media.base44.com/images/public/6a17e06edbff878f7a211934/217e87b0f_Screenshot2026-05-25073529.png";
+import EthyraLogo from "../components/EthyraLogo";
 
 export default function Payment() {
     const navigate = useNavigate();
@@ -94,7 +93,7 @@ export default function Payment() {
             {/* Header */}
             <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#0a1628]/90 backdrop-blur-md border-b border-blue-100 dark:border-blue-900/40 shadow-sm transition-colors">
                 <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-                    <img src={LOGO} alt="ETHYRA" className="h-8" />
+                    <EthyraLogo className="h-8" />
                     <div className="text-center">
                         <p className="text-sm font-bold text-slate-800 dark:text-white">Payment Portal</p>
                         <p className="text-xs text-slate-500 dark:text-blue-200">UPI Instant Payment · ₹{PAYMENT_AMOUNT}</p>

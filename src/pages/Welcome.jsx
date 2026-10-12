@@ -4,6 +4,7 @@ import { ClipboardList, Clock, Award, CheckCircle2, AlertCircle, ChevronRight, L
 import { getUserSession, logoutUser } from "../utils/authUtils";
 import { CATEGORIES } from "../utils/questions";
 import ThemeToggle from "../components/ThemeToggle";
+import EthyraLogo from "../components/EthyraLogo";
 
 const LOGO = "https://media.base44.com/images/public/6a17e06edbff878f7a211934/217e87b0f_Screenshot2026-05-25073529.png";
 
@@ -19,10 +20,12 @@ export default function Welcome() {
     const sectionDescriptions = [
         "Legal Identity and Registration",
         "Statutory and Tax Compliance",
-        "Financial Management",
         "Governance and Ethics",
+        "Financial Management & Controls",
         "Program Capability",
         "Monitoring and Impact",
+        "Safeguarding Inclusion & Data Responsibility",
+        "CSR & Donor Partnership Readiness",
     ];
 
     return (
@@ -30,7 +33,7 @@ export default function Welcome() {
             {/* Header */}
             <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#0a1628]/90 backdrop-blur-md border-b border-blue-100 dark:border-blue-900/40 shadow-sm transition-colors">
                 <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-                    <img src={LOGO} alt="ETHYRA" className="h-10" />
+                    <EthyraLogo className="h-9" />
                     <div className="text-center hidden sm:block">
                         <p className="text-sm font-bold text-slate-800 dark:text-white">{session?.fullName}</p>
                         <p className="text-xs text-slate-500 dark:text-blue-200">{session?.organizationName}</p>
@@ -66,7 +69,7 @@ export default function Welcome() {
                                 ))}
                             </div>
                         </div>
-                        <img src={LOGO} alt="ETHYRA" className="h-16 opacity-90 drop-shadow-lg" style={{ mixBlendMode: "screen" }} />
+                        <EthyraLogo variant="white" className="h-16 opacity-95 drop-shadow-xl" />
                     </div>
                 </motion.div>
 
@@ -81,7 +84,7 @@ export default function Welcome() {
                         <div className="space-y-2">
                             {[
                                 { dot: "bg-blue-500", text: "Select Best Fit — Choose the option accurately reflecting your current status" },
-                                { dot: "bg-indigo-500", text: "Multiple Options — Each question features tailored response choices (0–4 marks)" },
+                                { dot: "bg-indigo-500", text: "Multiple Options — Each question features tailored response choices" },
                                 { dot: "bg-slate-400", text: "N/A Option — Select Not Applicable when a specific statutory area does not apply" },
                             ].map(({ dot, text }) => (
                                 <div key={text} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-200">

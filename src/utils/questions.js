@@ -1657,7 +1657,7 @@ export const QUESTIONS = [
     "slNo": 37,
     "category": "Programme Capability",
     "weightage": 10.0,
-    "text": "Does your organisation have a plan for continuing or closing a programme after donor funding ends?",
+    "text": "Does your organisation have a plan for continuing a programme after donor funding ends?",
     "type": "Normal",
     "options": [
       {

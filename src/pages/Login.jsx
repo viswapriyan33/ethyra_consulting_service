@@ -21,9 +21,9 @@ import {
 } from "../utils/authUtils";
 import { UserProfileDB } from "../utils/db";
 import ThemeToggle from "../components/ThemeToggle";
+import logoWhite from "../assets/ethyra_logo_white.png";
 
-const LOGO =
-  "https://media.base44.com/images/public/6a17e06edbff878f7a211934/217e87b0f_Screenshot2026-05-25073529.png";
+const LOGO = logoWhite;
 
 // ---------- Admin Login Form ----------
 function AdminLoginForm({ onBack }) {
@@ -377,7 +377,6 @@ export default function Login() {
             src={LOGO}
             alt="ETHYRA"
             className="h-20 mx-auto mb-6 drop-shadow-2xl"
-            style={{ mixBlendMode: "screen" }}
           />
           <h1 className="text-4xl font-extrabold text-white mb-2 tracking-tight">
             NGO Readiness
@@ -429,8 +428,7 @@ export default function Login() {
             <DodgeLogo
               src={LOGO}
               alt="ETHYRA"
-              className="h-14 mx-auto mb-3"
-              style={{ mixBlendMode: "screen" }}
+              className="h-14 mx-auto mb-3 drop-shadow-lg"
             />
             <h1 className="text-3xl font-bold text-white">ETHYRA</h1>
             <p className="text-cyan-400 text-sm">

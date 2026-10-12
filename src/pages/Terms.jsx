@@ -5,8 +5,7 @@ import { FileText, LogOut, CheckCircle, AlertCircle, CheckSquare } from "lucide-
 import { getUserSession, logoutUser } from "../utils/authUtils";
 import { UserProfileDB } from "../utils/db";
 import ThemeToggle from "../components/ThemeToggle";
-
-const LOGO = "https://media.base44.com/images/public/6a17e06edbff878f7a211934/217e87b0f_Screenshot2026-05-25073529.png";
+import EthyraLogo from "../components/EthyraLogo";
 
 const TERMS_SECTIONS = [
     {
@@ -73,7 +72,7 @@ export default function Terms() {
             {/* Sticky Header */}
             <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#0a1628]/90 backdrop-blur-md border-b border-blue-100 dark:border-blue-900/40 shadow-sm transition-colors">
                 <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-                    <img src={LOGO} alt="ETHYRA" className="h-10" />
+                    <EthyraLogo className="h-9" />
                     <h1 className="text-base font-bold text-slate-800 dark:text-white">Terms and Conditions</h1>
                     <div className="flex items-center gap-2">
                         <ThemeToggle />
